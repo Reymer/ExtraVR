@@ -7,7 +7,7 @@ use alvr_common::{
     error, info, log, ConnectionState,
 };
 use alvr_events::{ButtonEvent, EventType};
-use alvr_packets::{ButtonEntry, ClientListAction, ServerRequest};
+use alvr_packets::{ButtonEntry, ClientListAction, PathSegment, PathValuePair, ServerRequest};
 use bytes::Buf;
 use futures::SinkExt;
 use headers::{
@@ -23,7 +23,11 @@ use hyper::{
 use serde::de::DeserializeOwned;
 use serde_json as json;
 use std::{net::SocketAddr, sync::Arc};
-use tokio::sync::broadcast::{self, error::RecvError};
+use tokio::{
+    io::{AsyncBufReadExt, BufReader},
+    net::{TcpListener, TcpStream},
+    sync::broadcast::{self, error::RecvError},
+};
 use tokio_tungstenite::{tungstenite::protocol, WebSocketStream};
 
 pub const WS_BROADCAST_CAPACITY: usize = 256;
@@ -369,12 +373,150 @@ async fn http_api(
     Ok(response)
 }
 
+const TCP_PASSTHROUGH_PORT: u16 = 9001;
+
+async fn handle_passthrough_tcp_client(socket: TcpStream, peer: SocketAddr) {
+    info!("[PassthroughTCP] Client connected: {peer}");
+
+    let reader = BufReader::new(socket);
+    let mut lines = reader.lines();
+
+    // Track last applied command to skip redundant session writes.
+    // Unity calls SetPassthroughOff/Blend every frame (~60/s); without dedup each call
+    // holds SESSION_MANAGER write lock long enough to starve the HTTP server.
+    let mut last_cmd = String::new();
+    let mut last_threshold = -1.0f32;
+
+    while let Ok(Some(line)) = lines.next_line().await {
+        let value = match json::from_str::<json::Value>(&line) {
+            Ok(v) => v,
+            Err(e) => {
+                error!("[PassthroughTCP] Invalid JSON from {peer}: {e}");
+                continue;
+            }
+        };
+
+        let cmd = value["passthrough"].as_str().unwrap_or("").to_owned();
+        let threshold = value["threshold"].as_f64().unwrap_or(0.5) as f32;
+
+        // Skip if nothing changed — avoids redundant JSON serialize/deserialize/disk writes
+        if cmd == last_cmd && (threshold - last_threshold).abs() < 1e-4 {
+            continue;
+        }
+        last_cmd.clone_from(&cmd);
+        last_threshold = threshold;
+
+        // Build a minimal list of leaf-level path changes to avoid replacing the
+        // entire PassthroughModeDefault subtree (which contains all variant fields).
+        // Replacing the whole subtree with a partial value causes JSON deserialization
+        // errors and a corrupted session.json.
+        let pairs: Vec<PathValuePair> = match cmd.as_str() {
+            "Blend" => vec![
+                PathValuePair {
+                    path: vec![
+                        PathSegment::Name("session_settings".into()),
+                        PathSegment::Name("video".into()),
+                        PathSegment::Name("passthrough".into()),
+                        PathSegment::Name("enabled".into()),
+                    ],
+                    value: json::json!(true),
+                },
+                PathValuePair {
+                    path: vec![
+                        PathSegment::Name("session_settings".into()),
+                        PathSegment::Name("video".into()),
+                        PathSegment::Name("passthrough".into()),
+                        PathSegment::Name("content".into()),
+                        PathSegment::Name("variant".into()),
+                    ],
+                    value: json::json!("Blend"),
+                },
+                PathValuePair {
+                    path: vec![
+                        PathSegment::Name("session_settings".into()),
+                        PathSegment::Name("video".into()),
+                        PathSegment::Name("passthrough".into()),
+                        PathSegment::Name("content".into()),
+                        PathSegment::Name("Blend".into()),
+                        PathSegment::Name("threshold".into()),
+                    ],
+                    value: json::json!(threshold),
+                },
+                // premultiplied_alpha=false ensures the compositor uses non-premultiplied
+                // alpha blending: output = alpha*video + (1-alpha)*passthrough.
+                // With alpha=0 (threshold=1.0), output = passthrough only.
+                // With premultiplied_alpha=true (default), the formula is additive:
+                // output = video_rgb + passthrough, causing semi-transparent artifacts on HTC.
+                PathValuePair {
+                    path: vec![
+                        PathSegment::Name("session_settings".into()),
+                        PathSegment::Name("video".into()),
+                        PathSegment::Name("passthrough".into()),
+                        PathSegment::Name("content".into()),
+                        PathSegment::Name("Blend".into()),
+                        PathSegment::Name("premultiplied_alpha".into()),
+                    ],
+                    value: json::json!(false),
+                },
+            ],
+            "Off" => vec![PathValuePair {
+                path: vec![
+                    PathSegment::Name("session_settings".into()),
+                    PathSegment::Name("video".into()),
+                    PathSegment::Name("passthrough".into()),
+                    PathSegment::Name("enabled".into()),
+                ],
+                value: json::json!(false),
+            }],
+            other => {
+                error!("[PassthroughTCP] Unknown passthrough command '{other}' from {peer}");
+                continue;
+            }
+        };
+
+        if let Err(e) = SESSION_MANAGER.write().set_values(pairs) {
+            error!("[PassthroughTCP] Failed to apply passthrough '{cmd}': {e}");
+        } else {
+            info!("[PassthroughTCP] Passthrough set to '{cmd}' (threshold={threshold})");
+        }
+    }
+
+    info!("[PassthroughTCP] Client disconnected: {peer}");
+}
+
+async fn tcp_passthrough_server() {
+    let bind_addr = SocketAddr::new("0.0.0.0".parse().unwrap(), TCP_PASSTHROUGH_PORT);
+
+    let listener = match TcpListener::bind(bind_addr).await {
+        Ok(l) => l,
+        Err(e) => {
+            error!("[PassthroughTCP] Failed to bind on port {TCP_PASSTHROUGH_PORT}: {e}");
+            return;
+        }
+    };
+
+    info!("[PassthroughTCP] Listening on port {TCP_PASSTHROUGH_PORT}");
+
+    loop {
+        match listener.accept().await {
+            Ok((socket, peer)) => {
+                tokio::spawn(handle_passthrough_tcp_client(socket, peer));
+            }
+            Err(e) => {
+                error!("[PassthroughTCP] Accept error: {e}");
+            }
+        }
+    }
+}
+
 pub async fn web_server(connection_context: Arc<ConnectionContext>) -> Result<()> {
     let web_server_port = crate::SESSION_MANAGER
         .read()
         .settings()
         .connection
         .web_server_port;
+
+    tokio::spawn(tcp_passthrough_server());
 
     let service = service::make_service_fn(move |_| {
         let connection_context = Arc::clone(&connection_context);
