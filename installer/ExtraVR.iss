@@ -1,11 +1,20 @@
 ﻿; Inno Setup script for the ExtraVR streamer (PC side / SteamVR driver).
 ; Packages build\alvr_streamer_windows into a single ExtraVR-Setup installer.
+;
 ; Build: "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer\ExtraVR.iss
+; The version can be overridden from the command line (this is what CI does):
+;        ISCC.exe /DAppVersion=1.2.3 installer\ExtraVR.iss
+;
+; All paths are derived from SourcePath (the folder holding this script) so the
+; script compiles from any checkout location, not just C:\Projects\ALVR.
 
 #define AppName "ExtraVR"
-#define AppVersion "1.0.0"
+#ifndef AppVersion
+  #define AppVersion "1.0.0"
+#endif
 #define AppExe "ExtraVR Dashboard.exe"
-#define SourceDir "C:\Projects\ALVR\build\alvr_streamer_windows"
+#define RepoRoot SourcePath + "..\"
+#define SourceDir RepoRoot + "build\alvr_streamer_windows"
 
 [Setup]
 AppId={{9F2C7A1E-3B4D-4E6F-9A2B-EXTRAVR000001}
@@ -18,9 +27,9 @@ DefaultGroupName={#AppName}
 DisableProgramGroupPage=yes
 UninstallDisplayName={#AppName}
 UninstallDisplayIcon={app}\{#AppExe}
-OutputDir=C:\Projects\ALVR\build
+OutputDir={#RepoRoot}build
 OutputBaseFilename=ExtraVR-Setup-{#AppVersion}
-SetupIconFile=C:\Projects\ALVR\alvr\dashboard\resources\dashboard.ico
+SetupIconFile={#RepoRoot}alvr\dashboard\resources\dashboard.ico
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
@@ -29,7 +38,7 @@ ArchitecturesInstallIn64BitMode=x64compatible
 PrivilegesRequired=admin
 
 [Languages]
-Name: "cht"; MessagesFile: "C:\Projects\ALVR\installer\ChineseTraditional.isl"
+Name: "cht"; MessagesFile: "{#SourcePath}ChineseTraditional.isl"
 
 [Files]
 ; Dashboard executable, installed under the ExtraVR product name.

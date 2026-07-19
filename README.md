@@ -1,90 +1,89 @@
-<p align="center"> <img width="500" src="resources/ALVR-Grey.svg"/> </p>
+# ExtraVR
 
-# ALVR - Air Light VR
+透過 Wi-Fi 把 PC 上的 VR 內容串流到獨立式頭戴裝置。
 
-[![badge-discord][]][link-discord] [![badge-matrix][]][link-matrix] [![badge-opencollective][]][link-opencollective]
+ExtraVR 是 [ALVR](https://github.com/alvr-org/ALVR) 的衍生作品（MIT 授權），在其基礎上加入繁體中文介面、重新設計的儀表板、瀏覽器監控頁與 Unity 整合用的 TCP 通道，並以單一 Windows 安裝檔散佈。
 
-Stream VR games from your PC to your headset via Wi-Fi.
-This is a fork of [ALVR](https://github.com/polygraphene/ALVR).
+## 與上游 ALVR 的差異
 
-### Direct download to the latest version:
-### [Windows Launcher](https://github.com/alvr-org/ALVR/releases/latest/download/alvr_launcher_windows.zip) | [Linux Launcher](https://github.com/alvr-org/ALVR/releases/latest/download/alvr_launcher_linux.tar.gz)
+| 項目 | 說明 |
+| --- | --- |
+| 介面 | 深色 tech 風格主題（電光青 accent）、緊湊化的分頁配置 |
+| 語言 | 儀表板文字繁體中文化，於 render layer 套用，不動 `settings.rs` 與 preset 比對邏輯 |
+| 字型 | 自動載入系統 CJK 字型，中文不再顯示為方框 |
+| 監控頁 | 串流端內建網頁監控，任何裝置皆可開啟 `http://<PC IP>:<web_server_port>/monitor` |
+| Unity 整合 | TCP passthrough 通道，連接埠可於設定中調整（預設 9001） |
+| 散佈方式 | Inno Setup 安裝檔，安裝時自動註冊 SteamVR 驅動、設定防火牆與寫入權限 |
 
-## Compatibility
+## 相容性
 
-|          VR Headset          |                                        Support                                         |
-| :--------------------------: | :------------------------------------------------------------------------------------: |
-|       Apple Vision Pro       |    :heavy_check_mark: ([store link](https://apps.apple.com/app/alvr/id6479728026))     |
-|      Quest 1/2/3/3S/Pro      | :heavy_check_mark: ([store link](https://www.meta.com/experiences/7674846229245715) *) |
-|     Pico Neo 3/4/4 Ultra     |                                   :heavy_check_mark:                                   |
-|    Play For Dream YVR 1/2/MR |                                   :heavy_check_mark:                                   |
-| Vive Focus 3/Vision/XR Elite |                                   :heavy_check_mark:                                   |
-|           Lynx R1            |                                   :heavy_check_mark:                                   |
-|     PhoneVR (smartphone)     |     :heavy_check_mark: ** ([repo](https://github.com/PhoneVR-Developers/PhoneVR))      |
-|        Android/Monado        |                                      :warning: **                                      |
-|          Oculus Go           |                 :x: ([old repo](https://github.com/polygraphene/ALVR))                 |
+| 頭戴裝置 | 支援 |
+| :--- | :---: |
+| Quest 1/2/3/3S/Pro | ✔ |
+| Pico Neo 3/4/4 Ultra | ✔ |
+| Play For Dream YVR 1/2/MR | ✔ |
+| Vive Focus 3/Vision/XR Elite | ✔ |
+| Lynx R1 | ✔ |
+| Apple Vision Pro | ✔ |
+| Oculus Go | ✘ |
 
-\* : ALVR for Quest 1 not available through the Meta store.  
-\** : Only works on some smartphones, not enough testing.  
+| PC 作業系統 | 支援 |
+| :--- | :---: |
+| Windows 10/11 | ✔ |
+| Linux | 未測試（上游為 beta） |
+| macOS | ✘ |
 
-|     PC OS      |                                    Support                                    |
-| :------------: | :---------------------------------------------------------------------------: |
-| Windows 10/11  | :heavy_check_mark: ([store link](https://store.steampowered.com/app/3312710)) |
-| Windows XP/7/8 |                                      :x:                                      |
-|     Linux      |                             :heavy_check_mark:***                             |
-|     macOS      |                                      :x:                                      |
+裝置支援狀況繼承自上游 ALVR；ExtraVR 目前只針對 Windows 串流端與 Android 用戶端進行建置與測試。
 
-\*** : Linux support is still in beta. To be able to make audio work or run ALVR at all you may need advanced knowledge of your distro for debugging or building from source.
+### 硬體需求
 
-### Requirements
+- 支援的獨立式 VR 頭戴裝置
+- SteamVR
+- 支援 NVENC 的 NVIDIA GPU（GTX 1000 系列以上）或支援 AMF VCE 的 AMD GPU，並安裝最新驅動
+  - 筆電請將 ExtraVR 與 SteamVR 指定為使用獨立顯卡
+- 802.11ac 5GHz 無線網路；PC 端建議使用有線連接，且與頭戴裝置位於同一個路由器下
 
--   A supported standalone VR headset (see compatibility table above)
+## 安裝
 
--   SteamVR
+從 Releases 頁面下載 `ExtraVR-Setup-<版本>.exe` 並執行。安裝程式會自動：
 
--   High-end gaming PC
-    -   See OS compatibility table above.
-    -   NVIDIA GPU that supports NVENC (1000 GTX Series or higher) (or with an AMD GPU that supports AMF VCE) with the latest driver.
-    -   Laptops with an onboard (Intel HD, AMD iGPU) and an additional dedicated GPU (NVidia GTX/RTX, AMD HD/R5/R7): you should assign the dedicated GPU or "high performance graphics adapter" to the applications ALVR, SteamVR for best performance and compatibility. (NVidia: Nvidia control panel->3d settings->application settings; AMD: similiar way)
+- 將程式安裝到 `Program Files\ExtraVR`
+- 授予安裝資料夾寫入權限（`session.json` 與 log 存放於此，SteamVR 以非提權身分執行）
+- 為 SteamVR 的 `vrserver.exe` 加入輸入防火牆規則
+- 以 `vrpathreg` 註冊 SteamVR 驅動
 
--   802.11ac 5Ghz wireless or ethernet wired connection
-    -   It is recommended to use 802.11ac 5Ghz for the headset and ethernet for PC
-    -   You need to connect both the PC and the headset to same router (or use a routed connection as described [here](https://github.com/alvr-org/ALVR/wiki/ALVR-v14-and-Above))
+解除安裝時會自動反註冊驅動並移除防火牆規則。
 
-## Install
+## 從原始碼建置
 
-Follow the installation guide [here](https://github.com/alvr-org/ALVR/wiki/Installation-guide).
+需要 Windows、Rust stable 與系統管理員權限：
 
-## Troubleshooting
+```powershell
+.\build_streamer.ps1     # PC 串流端（SteamVR 驅動 + 儀表板）
+.\build_android.ps1      # Android 用戶端
+```
 
--   Please check the [Troubleshooting](https://github.com/alvr-org/ALVR/wiki/Troubleshooting) page, and also [Linux Troubleshooting](https://github.com/alvr-org/ALVR/wiki/Linux-Troubleshooting) if applicable.
--   Configuration recommendations and information may be found [here](https://github.com/alvr-org/ALVR/wiki/Information-and-Recommendations)
+產物位於 `build\alvr_streamer_windows`。要打包安裝檔：
 
-## Uninstall
+```powershell
+& "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" /DAppVersion=1.0.0 installer\ExtraVR.iss
+```
 
-Open `ALVR Dashboard.exe`, go to `Installation` tab then press `Remove firewall rules`. Close ALVR window and delete the ALVR folder.
+發佈流程另有 GitHub Actions workflow（`Create release`，手動觸發），會產生草稿 release 並附上安裝檔與 APK。
 
-## Build from source
+## 與上游同步
 
-You can follow the guide [here](https://github.com/alvr-org/ALVR/wiki/Building-From-Source).
+```bash
+git fetch upstream
+git merge upstream/master
+```
 
-## License
+`upstream` 指向 [alvr-org/ALVR](https://github.com/alvr-org/ALVR)，`origin` 為本專案。
 
-ALVR is licensed under the [MIT License](LICENSE).
+## 授權
 
-## Privacy policy
+ExtraVR 以 [MIT License](LICENSE) 授權，並保留上游 ALVR（polygraphene、alvr-org）的版權聲明。
 
-ALVR apps do not directly collect any kind of data.
+## 隱私
 
-## Donate
-
-If you want to support this project you can make a donation to our [Open Source Collective account](https://opencollective.com/alvr).
-
-You can also donate to the original author of ALVR using Paypal (polygraphene@gmail.com) or with bitcoin (1FCbmFVSjsmpnAj6oLx2EhnzQzzhyxTLEv).
-
-[badge-discord]: https://img.shields.io/discord/720612397580025886?style=for-the-badge&logo=discord&color=5865F2 "Join us on Discord"
-[link-discord]: https://discord.gg/ALVR
-[badge-matrix]: https://img.shields.io/static/v1?label=chat&message=%23alvr&style=for-the-badge&logo=matrix&color=blueviolet "Join us on Matrix"
-[link-matrix]: https://matrix.to/#/#alvr:ckie.dev?via=ckie.dev
-[badge-opencollective]: https://img.shields.io/opencollective/all/alvr?style=for-the-badge&logo=opencollective&color=79a3e6 "Donate"
-[link-opencollective]: https://opencollective.com/alvr
+ExtraVR 不主動蒐集任何資料。
