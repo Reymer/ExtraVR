@@ -19,7 +19,7 @@ use alvr_common::{
     dbg_server_core, error,
     glam::Vec2,
     once_cell::sync::Lazy,
-    parking_lot::{Mutex, RwLock},
+    parking_lot::{Condvar, Mutex, RwLock},
     settings_schema::Switch,
     warn, ConnectionState, DeviceMotion, Fov, LifecycleState, Pose, RelaxedAtomic,
     DEVICE_ID_TO_PATH,
@@ -63,6 +63,33 @@ static SESSION_MANAGER: Lazy<RwLock<ServerSessionManager>> = Lazy::new(|| {
         FILESYSTEM_LAYOUT.get().map(|l| l.session()),
     ))
 });
+
+// Bumped whenever a setting the streaming client applies live (passthrough, clientside post
+// processing) is changed, so the real-time update thread can push it straight away instead of
+// waiting out its poll interval. A revision counter rather than a flag, so that several waiters
+// each observe the change instead of racing to consume one notification.
+static REAL_TIME_SETTINGS_REVISION: Lazy<(Mutex<u64>, Condvar)> =
+    Lazy::new(|| (Mutex::new(0), Condvar::new()));
+
+pub(crate) fn notify_real_time_settings_changed() {
+    let (revision, condvar) = &*REAL_TIME_SETTINGS_REVISION;
+    *revision.lock() += 1;
+    condvar.notify_all();
+}
+
+/// Blocks until the revision moves past `last_seen`, or `timeout` elapses, and returns the
+/// current revision. The timeout keeps the periodic resync as a safety net for anything that
+/// changes the session without notifying.
+pub(crate) fn wait_real_time_settings_changed(last_seen: u64, timeout: Duration) -> u64 {
+    let (revision, condvar) = &*REAL_TIME_SETTINGS_REVISION;
+
+    let mut revision = revision.lock();
+    if *revision == last_seen {
+        condvar.wait_for(&mut revision, timeout);
+    }
+
+    *revision
+}
 
 pub fn initialize_environment(layout: afs::Layout) {
     FILESYSTEM_LAYOUT.set(layout).unwrap();

@@ -200,10 +200,12 @@ async fn http_api(
                         )));
                     }
                     ServerRequest::UpdateSession(session) => {
-                        *SESSION_MANAGER.write().session_mut() = *session
+                        *SESSION_MANAGER.write().session_mut() = *session;
+                        crate::notify_real_time_settings_changed();
                     }
                     ServerRequest::SetValues(descs) => {
                         SESSION_MANAGER.write().set_values(descs).ok();
+                        crate::notify_real_time_settings_changed();
                     }
                     ServerRequest::UpdateClientList {
                         hostname,
@@ -492,6 +494,9 @@ async fn handle_passthrough_tcp_client(socket: TcpStream, peer: SocketAddr) {
         if let Err(e) = SESSION_MANAGER.write().set_values(pairs) {
             error!("[PassthroughTCP] Failed to apply passthrough '{cmd}': {e}");
         } else {
+            // Push it to the headset now instead of on the update thread's next tick.
+            crate::notify_real_time_settings_changed();
+
             info!("[PassthroughTCP] Passthrough set to '{cmd}' (threshold={threshold})");
         }
     }

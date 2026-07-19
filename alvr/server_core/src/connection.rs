@@ -1087,6 +1087,8 @@ fn connection_pipeline(
         let control_sender = Arc::clone(&control_sender);
         let client_hostname = client_hostname.clone();
         move || {
+            let mut settings_revision = 0;
+
             while is_streaming(&client_hostname) {
                 let config = {
                     let session_manager_lock = SESSION_MANAGER.read();
@@ -1099,7 +1101,13 @@ fn connection_pipeline(
                     control_sender.lock().send(&config).ok();
                 }
 
-                thread::sleep(REAL_TIME_UPDATE_INTERVAL);
+                // Woken as soon as a live-applied setting changes, so a passthrough toggle
+                // reaches the headset in about a frame instead of up to a full interval later.
+                // The interval remains as the resync fallback and as the streaming-stopped poll.
+                settings_revision = crate::wait_real_time_settings_changed(
+                    settings_revision,
+                    REAL_TIME_UPDATE_INTERVAL,
+                );
             }
         }
     });
