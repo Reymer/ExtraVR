@@ -1416,7 +1416,10 @@ TCP: Slower than UDP, but more stable. Pick this if you experience video or audi
     pub web_server_port: u16,
     pub osc_local_port: u16,
 
-    #[schema(flag = "steamvr-restart", strings(display_name = "Passthrough TCP port"))]
+    #[schema(
+        flag = "steamvr-restart",
+        strings(display_name = "Passthrough TCP port")
+    )]
     pub passthrough_tcp_port: u16,
 
     #[schema(strings(display_name = "Streamer send buffer size"))]

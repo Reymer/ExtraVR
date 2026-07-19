@@ -137,7 +137,8 @@ pub fn card(fill: Color32) -> egui::Frame {
 pub fn section_title(ui: &mut egui::Ui, title: &str) {
     ui.horizontal(|ui| {
         let (rect, _) = ui.allocate_exact_size(egui::vec2(3.0, 18.0), egui::Sense::hover());
-        ui.painter().rect_filled(rect, CornerRadius::same(2), ACCENT);
+        ui.painter()
+            .rect_filled(rect, CornerRadius::same(2), ACCENT);
         ui.add_space(9.0);
         ui.label(egui::RichText::new(title).size(16.0).strong().color(FG));
     });

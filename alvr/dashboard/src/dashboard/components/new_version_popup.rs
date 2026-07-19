@@ -34,8 +34,7 @@ impl NewVersionPopup {
     }
 
     pub fn ui(&self, context: &Context, shutdown_alvr_cb: impl Fn()) -> Option<CloseAction> {
-        let no_remind_button =
-            ModalButton::Custom("此版本不再提醒我".to_string());
+        let no_remind_button = ModalButton::Custom("此版本不再提醒我".to_string());
 
         let result = alvr_gui_common::modal(
             context,
@@ -75,10 +74,7 @@ impl NewVersionPopup {
                         ui.add_space(10.0);
 
                         ui.label(&self.message);
-                        ui.hyperlink_to(
-                            "發行頁面",
-                            "https://github.com/alvr-org/ALVR/releases",
-                        );
+                        ui.hyperlink_to("發行頁面", "https://github.com/alvr-org/ALVR/releases");
                     });
 
                     ui.add_space(10.0);

@@ -163,11 +163,7 @@ impl Control {
 
             // The emoji is blue but it will be green in the UI
             if self.real_time_flag && ui.colored_label(OK_GREEN, "🔵").hovered() {
-                alvr_gui_common::tooltip(
-                    ui,
-                    "real_time_tooltip",
-                    "此設定可在串流過程中即時變更！",
-                );
+                alvr_gui_common::tooltip(ui, "real_time_tooltip", "此設定可在串流過程中即時變更！");
             }
         });
 

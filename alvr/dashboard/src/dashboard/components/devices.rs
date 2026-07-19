@@ -243,47 +243,46 @@ fn new_clients_section(
 ) -> Option<ServerRequest> {
     let mut request = None;
 
-    theme::card(theme::SECTION_BG)
-        .show(ui, |ui| {
-            ui.vertical_centered_justified(|ui| {
-                ui.add_space(5.0);
-                ui.horizontal(|ui| {
-                    ui.add_space(10.0);
-                    theme::section_title(ui, "新的無線裝置");
+    theme::card(theme::SECTION_BG).show(ui, |ui| {
+        ui.vertical_centered_justified(|ui| {
+            ui.add_space(5.0);
+            ui.horizontal(|ui| {
+                ui.add_space(10.0);
+                theme::section_title(ui, "新的無線裝置");
 
-                    // Extend to the right
-                    ui.with_layout(Layout::right_to_left(Align::Center), |_| ());
-                });
-
-                if clients.is_empty() {
-                    // for some reson any positive value adds too much space
-                    ui.add_space(-10.0);
-                }
+                // Extend to the right
+                ui.with_layout(Layout::right_to_left(Align::Center), |_| ());
             });
-            for (hostname, _) in clients {
-                theme::card(theme::DARKER_BG)
-                    .inner_margin(egui::vec2(15.0, 12.0))
-                    .show(ui, |ui| {
-                        Grid::new(format!("{hostname}-new-clients"))
-                            .num_columns(2)
-                            .spacing(egui::vec2(8.0, 8.0))
-                            .show(ui, |ui| {
-                                ui.horizontal(|ui| {
-                                    ui.label(hostname);
-                                });
-                                ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                                    if ui.button("信任").clicked() {
-                                        request = Some(ServerRequest::UpdateClientList {
-                                            hostname: hostname.clone(),
-                                            action: ClientListAction::Trust,
-                                        });
-                                    };
-                                });
-                                ui.end_row();
-                            });
-                    });
+
+            if clients.is_empty() {
+                // for some reson any positive value adds too much space
+                ui.add_space(-10.0);
             }
         });
+        for (hostname, _) in clients {
+            theme::card(theme::DARKER_BG)
+                .inner_margin(egui::vec2(15.0, 12.0))
+                .show(ui, |ui| {
+                    Grid::new(format!("{hostname}-new-clients"))
+                        .num_columns(2)
+                        .spacing(egui::vec2(8.0, 8.0))
+                        .show(ui, |ui| {
+                            ui.horizontal(|ui| {
+                                ui.label(hostname);
+                            });
+                            ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                                if ui.button("信任").clicked() {
+                                    request = Some(ServerRequest::UpdateClientList {
+                                        hostname: hostname.clone(),
+                                        action: ClientListAction::Trust,
+                                    });
+                                };
+                            });
+                            ui.end_row();
+                        });
+                });
+        }
+    });
 
     request
 }
@@ -295,70 +294,69 @@ fn trusted_clients_section(
 ) -> Option<ServerRequest> {
     let mut request = None;
 
-    theme::card(theme::SECTION_BG)
-        .show(ui, |ui| {
-            Grid::new(0).num_columns(2).show(ui, |ui| {
-                ui.horizontal(|ui| {
-                    ui.add_space(10.0);
-                    theme::section_title(ui, "受信任的無線裝置");
-                });
-
-                ui.with_layout(Layout::right_to_left(eframe::emath::Align::Center), |ui| {
-                    if ui.button("手動新增裝置").clicked() {
-                        *edit_popup_state = Some(EditPopupState {
-                            hostname: "XXXX.client.local.".into(),
-                            new_devices: true,
-                            ips: Vec::new(),
-                        });
-                    }
-                });
+    theme::card(theme::SECTION_BG).show(ui, |ui| {
+        Grid::new(0).num_columns(2).show(ui, |ui| {
+            ui.horizontal(|ui| {
+                ui.add_space(10.0);
+                theme::section_title(ui, "受信任的無線裝置");
             });
 
-            for (hostname, data) in clients {
-                theme::card(theme::DARKER_BG)
-                    .inner_margin(egui::vec2(15.0, 12.0))
-                    .show(ui, |ui| {
-                        Grid::new(format!("{hostname}-clients"))
-                            .num_columns(2)
-                            .spacing(egui::vec2(8.0, 8.0))
-                            .show(ui, |ui| {
-                                ui.label(&data.display_name);
-                                ui.horizontal(|ui| {
-                                    ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                                        connection_label(ui, &data.connection_state)
-                                    });
-                                });
+            ui.with_layout(Layout::right_to_left(eframe::emath::Align::Center), |ui| {
+                if ui.button("手動新增裝置").clicked() {
+                    *edit_popup_state = Some(EditPopupState {
+                        hostname: "XXXX.client.local.".into(),
+                        new_devices: true,
+                        ips: Vec::new(),
+                    });
+                }
+            });
+        });
 
-                                ui.end_row();
-
-                                ui.label(format!(
-                                    "{hostname}: {}",
-                                    data.current_ip
-                                        .map_or_else(|| "未知 IP".into(), |ip| ip.to_string()),
-                                ));
+        for (hostname, data) in clients {
+            theme::card(theme::DARKER_BG)
+                .inner_margin(egui::vec2(15.0, 12.0))
+                .show(ui, |ui| {
+                    Grid::new(format!("{hostname}-clients"))
+                        .num_columns(2)
+                        .spacing(egui::vec2(8.0, 8.0))
+                        .show(ui, |ui| {
+                            ui.label(&data.display_name);
+                            ui.horizontal(|ui| {
                                 ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                                    if ui.button("移除").clicked() {
-                                        request = Some(ServerRequest::UpdateClientList {
-                                            hostname: hostname.clone(),
-                                            action: ClientListAction::RemoveEntry,
-                                        });
-                                    }
-                                    if ui.button("編輯").clicked() {
-                                        *edit_popup_state = Some(EditPopupState {
-                                            new_devices: false,
-                                            hostname: hostname.to_owned(),
-                                            ips: data
-                                                .manual_ips
-                                                .iter()
-                                                .map(|addr| addr.to_string())
-                                                .collect::<Vec<String>>(),
-                                        });
-                                    }
+                                    connection_label(ui, &data.connection_state)
                                 });
                             });
-                    });
-            }
-        });
+
+                            ui.end_row();
+
+                            ui.label(format!(
+                                "{hostname}: {}",
+                                data.current_ip
+                                    .map_or_else(|| "未知 IP".into(), |ip| ip.to_string()),
+                            ));
+                            ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                                if ui.button("移除").clicked() {
+                                    request = Some(ServerRequest::UpdateClientList {
+                                        hostname: hostname.clone(),
+                                        action: ClientListAction::RemoveEntry,
+                                    });
+                                }
+                                if ui.button("編輯").clicked() {
+                                    *edit_popup_state = Some(EditPopupState {
+                                        new_devices: false,
+                                        hostname: hostname.to_owned(),
+                                        ips: data
+                                            .manual_ips
+                                            .iter()
+                                            .map(|addr| addr.to_string())
+                                            .collect::<Vec<String>>(),
+                                    });
+                                }
+                            });
+                        });
+                });
+        }
+    });
 
     request
 }
@@ -369,8 +367,6 @@ fn connection_label(ui: &mut Ui, connection_state: &ConnectionState) {
         ConnectionState::Connecting => ui.colored_label(log_colors::WARNING_LIGHT, "連線中"),
         ConnectionState::Connected => ui.colored_label(theme::OK_GREEN, "已連線"),
         ConnectionState::Streaming => ui.colored_label(theme::OK_GREEN, "串流中"),
-        ConnectionState::Disconnecting => {
-            ui.colored_label(log_colors::WARNING_LIGHT, "中斷連線中")
-        }
+        ConnectionState::Disconnecting => ui.colored_label(log_colors::WARNING_LIGHT, "中斷連線中"),
     };
 }

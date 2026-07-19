@@ -204,8 +204,7 @@ impl SettingsTab {
                                 .min_col_width(MIN_COLUMN_SIZE)
                                 .spacing(egui::vec2(20.0, 10.0))
                                 .show(ui, |ui| {
-                                    if let Some(session_fragment) =
-                                        &mut self.session_settings_json
+                                    if let Some(session_fragment) = &mut self.session_settings_json
                                     {
                                         let session_fragments_mut =
                                             session_fragment.as_object_mut().unwrap();

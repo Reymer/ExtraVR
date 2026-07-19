@@ -114,8 +114,7 @@ pub fn codec_preset_schema() -> PresetSchemaNode {
         name: "codec_preset".into(),
         strings: [(
             "help".into(),
-            "AV1 僅支援較新的顯示卡（AMD RX 7xxx+、NVIDIA RTX 30xx+、Intel ARC）！"
-                .into(),
+            "AV1 僅支援較新的顯示卡（AMD RX 7xxx+、NVIDIA RTX 30xx+、Intel ARC）！".into(),
         )]
         .into_iter()
         .collect(),
@@ -296,8 +295,7 @@ pub fn game_audio_schema() -> PresetSchemaNode {
         name: "Headset speaker".into(),
         strings: [(
             "notice".into(),
-            "您可以從系統工作列系統匣（右下角）變更預設音訊裝置"
-                .into(),
+            "您可以從系統工作列系統匣（右下角）變更預設音訊裝置".into(),
         )]
         .into_iter()
         .collect(),

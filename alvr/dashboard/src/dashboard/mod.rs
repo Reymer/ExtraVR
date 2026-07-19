@@ -238,7 +238,6 @@ impl eframe::App for Dashboard {
             return;
         }
 
-
         if self.setup_wizard_open {
             CentralPanel::default().show(context, |ui| {
                 if let Some(request) = self.setup_wizard.ui(ui) {
@@ -307,7 +306,11 @@ impl eframe::App for Dashboard {
                                     theme::SECTION_BG,
                                 );
                             }
-                            let fg = if selected { theme::ON_ACCENT } else { theme::FG };
+                            let fg = if selected {
+                                theme::ON_ACCENT
+                            } else {
+                                theme::FG
+                            };
                             draw_tab_icon(
                                 ui.painter(),
                                 egui::Rect::from_center_size(

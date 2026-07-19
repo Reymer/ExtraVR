@@ -84,12 +84,7 @@ impl SetupWizard {
         });
         ui.separator();
         match &self.page {
-            Page::Welcome => page_content(
-                ui,
-                "本設定精靈將協助您設定 ExtraVR。",
-                "",
-                |_| (),
-            ),
+            Page::Welcome => page_content(ui, "本設定精靈將協助您設定 ExtraVR。", "", |_| ()),
             Page::ResetSettings => page_content(
                 ui,
                 "重設設定",
