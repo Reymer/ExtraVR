@@ -26,7 +26,6 @@ fn get_filesystem_layout() -> afs::Layout {
 
 #[cfg(not(target_arch = "wasm32"))]
 fn main() {
-    use alvr_common::ALVR_VERSION;
     use alvr_filesystem as afs;
     use eframe::{
         egui::{IconData, ViewportBuilder},
@@ -72,7 +71,7 @@ fn main() {
     }
 
     eframe::run_native(
-        &format!("ALVR Dashboard (streamer v{})", *ALVR_VERSION),
+        "ExtraVR 儀表板（串流端 v1.0.0）",
         NativeOptions {
             viewport: ViewportBuilder::default()
                 .with_app_id("alvr.dashboard")

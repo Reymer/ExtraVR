@@ -1,9 +1,9 @@
 use alvr_common::LogSeverity;
 use alvr_events::{Event, EventType};
-use alvr_gui_common::theme::log_colors;
+use alvr_gui_common::theme::{self, log_colors};
 use alvr_session::{RawEventsConfig, Settings};
 use eframe::{
-    egui::{Grid, OpenUrl, OutputCommand, RichText, ScrollArea, Ui},
+    egui::{self, Grid, OpenUrl, OutputCommand, RichText, ScrollArea, Ui},
     epaint::Color32,
 };
 use settings_schema::Switch;
@@ -73,8 +73,11 @@ impl LogsTab {
     }
 
     pub fn ui(&self, ui: &mut Ui) {
+        theme::section_title(ui, "日誌");
+        ui.add_space(8.0);
+
         ui.horizontal(|ui| {
-            if ui.button("Copy all").clicked() {
+            if ui.button("全部複製").clicked() {
                 ui.output_mut(|out| {
                     out.commands
                         .push(OutputCommand::CopyText(self.entries.iter().fold(
@@ -88,7 +91,7 @@ impl LogsTab {
                         )));
                 })
             }
-            if ui.button("Open logs directory").clicked() {
+            if ui.button("開啟日誌資料夾").clicked() {
                 let log_dir = crate::get_filesystem_layout().log_dir;
                 ui.ctx().open_url(OpenUrl::same_tab(format!(
                     "file://{}",
@@ -97,25 +100,37 @@ impl LogsTab {
             }
         });
 
-        ScrollArea::both()
-            .stick_to_bottom(true)
-            .auto_shrink([false, false])
-            .show(ui, |ui| {
-                Grid::new(0)
-                    .spacing((10.0, 2.0))
-                    .num_columns(3)
-                    .striped(true)
-                    .show(ui, |ui| {
-                        for entry in &self.entries {
-                            ui.colored_label(
-                                entry.color,
-                                RichText::new(&entry.timestamp).size(12.0),
-                            );
-                            ui.colored_label(entry.color, RichText::new(&entry.ty).size(12.0));
-                            ui.colored_label(entry.color, RichText::new(&entry.message).size(12.0));
+        ui.add_space(8.0);
 
-                            ui.end_row();
-                        }
+        theme::card(theme::DARKER_BG)
+            .inner_margin(egui::vec2(12.0, 10.0))
+            .show(ui, |ui| {
+                ScrollArea::both()
+                    .stick_to_bottom(true)
+                    .auto_shrink([false, false])
+                    .show(ui, |ui| {
+                        Grid::new(0)
+                            .spacing((10.0, 4.0))
+                            .num_columns(3)
+                            .striped(false)
+                            .show(ui, |ui| {
+                                for entry in &self.entries {
+                                    ui.colored_label(
+                                        entry.color,
+                                        RichText::new(&entry.timestamp).size(12.0),
+                                    );
+                                    ui.colored_label(
+                                        entry.color,
+                                        RichText::new(&entry.ty).size(12.0),
+                                    );
+                                    ui.colored_label(
+                                        entry.color,
+                                        RichText::new(&entry.message).size(12.0),
+                                    );
+
+                                    ui.end_row();
+                                }
+                            });
                     });
             });
     }

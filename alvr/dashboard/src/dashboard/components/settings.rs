@@ -5,7 +5,7 @@ use super::{
 use crate::dashboard::ServerRequest;
 use alvr_gui_common::{theme, DisplayString};
 use alvr_session::{SessionSettings, Settings};
-use eframe::egui::{self, Align, Frame, Grid, Layout, RichText, ScrollArea, Ui};
+use eframe::egui::{self, Align, Grid, Layout, RichText, ScrollArea, Ui};
 #[cfg(target_arch = "wasm32")]
 use instant::Instant;
 use serde_json as json;
@@ -123,17 +123,19 @@ impl SettingsTab {
 
         let mut path_value_pairs = vec![];
         ui.with_layout(Layout::left_to_right(Align::Min), |ui| {
-            Frame::group(ui.style())
-                .fill(theme::DARKER_BG)
+            theme::card(theme::DARKER_BG)
                 .inner_margin(egui::vec2(15.0, 12.0))
                 .show(ui, |ui| {
                     ui.horizontal_wrapped(|ui| {
                         ui.selectable_value(
                             &mut self.selected_top_tab_id,
                             "presets".into(),
-                            RichText::new("Presets").raised().size(15.0),
+                            RichText::new("預設集").raised().size(15.0),
                         );
                         for entry in &mut self.top_level_entries {
+                            if super::translation::is_hidden_tab(&entry.id.id) {
+                                continue;
+                            }
                             ui.selectable_value(
                                 &mut self.selected_top_tab_id,
                                 entry.id.id.clone(),
@@ -144,77 +146,92 @@ impl SettingsTab {
                 })
         });
 
+        ui.add_space(12.0);
+
         if self.selected_top_tab_id == "presets" {
             ScrollArea::new([false, true])
                 .id_salt("presets_scroll")
                 .show(ui, |ui| {
-                    Grid::new("presets_grid")
-                        .striped(true)
-                        .num_columns(2)
-                        .min_col_width(MIN_COLUMN_SIZE)
+                    theme::card(theme::SECTION_BG)
+                        .inner_margin(egui::Margin::same(18))
                         .show(ui, |ui| {
-                            path_value_pairs.extend(self.resolution_preset.ui(ui));
-                            ui.end_row();
+                            Grid::new("presets_grid")
+                                .striped(false)
+                                .num_columns(2)
+                                .min_col_width(MIN_COLUMN_SIZE)
+                                .spacing(egui::vec2(20.0, 10.0))
+                                .show(ui, |ui| {
+                                    path_value_pairs.extend(self.resolution_preset.ui(ui));
+                                    ui.end_row();
 
-                            path_value_pairs.extend(self.framerate_preset.ui(ui));
-                            ui.end_row();
+                                    path_value_pairs.extend(self.framerate_preset.ui(ui));
+                                    ui.end_row();
 
-                            path_value_pairs.extend(self.encoder_preset.ui(ui));
-                            ui.end_row();
+                                    path_value_pairs.extend(self.encoder_preset.ui(ui));
+                                    ui.end_row();
 
-                            path_value_pairs.extend(self.foveation_preset.ui(ui));
-                            ui.end_row();
+                                    path_value_pairs.extend(self.foveation_preset.ui(ui));
+                                    ui.end_row();
 
-                            path_value_pairs.extend(self.codec_preset.ui(ui));
-                            ui.end_row();
+                                    path_value_pairs.extend(self.codec_preset.ui(ui));
+                                    ui.end_row();
 
-                            path_value_pairs.extend(self.game_audio_preset.ui(ui));
-                            ui.end_row();
+                                    path_value_pairs.extend(self.game_audio_preset.ui(ui));
+                                    ui.end_row();
 
-                            path_value_pairs.extend(self.microphone_preset.ui(ui));
-                            ui.end_row();
+                                    path_value_pairs.extend(self.microphone_preset.ui(ui));
+                                    ui.end_row();
 
-                            path_value_pairs.extend(self.hand_tracking_interaction_preset.ui(ui));
-                            ui.end_row();
+                                    path_value_pairs
+                                        .extend(self.hand_tracking_interaction_preset.ui(ui));
+                                    ui.end_row();
 
-                            path_value_pairs.extend(self.eye_face_tracking_preset.ui(ui));
-                            ui.end_row();
-                        })
+                                    path_value_pairs.extend(self.eye_face_tracking_preset.ui(ui));
+                                    ui.end_row();
+                                })
+                        });
                 });
         } else {
             ScrollArea::new([false, true])
                 .id_salt(format!("{}_scroll", self.selected_top_tab_id))
                 .show(ui, |ui| {
-                    Grid::new(format!("{}_grid", self.selected_top_tab_id))
-                        .striped(true)
-                        .num_columns(2)
-                        .min_col_width(MIN_COLUMN_SIZE)
+                    theme::card(theme::SECTION_BG)
+                        .inner_margin(egui::Margin::same(18))
                         .show(ui, |ui| {
-                            if let Some(session_fragment) = &mut self.session_settings_json {
-                                let session_fragments_mut =
-                                    session_fragment.as_object_mut().unwrap();
+                            Grid::new(format!("{}_grid", self.selected_top_tab_id))
+                                .striped(false)
+                                .num_columns(2)
+                                .min_col_width(MIN_COLUMN_SIZE)
+                                .spacing(egui::vec2(20.0, 10.0))
+                                .show(ui, |ui| {
+                                    if let Some(session_fragment) =
+                                        &mut self.session_settings_json
+                                    {
+                                        let session_fragments_mut =
+                                            session_fragment.as_object_mut().unwrap();
 
-                                let entry = self
-                                    .top_level_entries
-                                    .iter_mut()
-                                    .find(|entry: &&mut TopLevelEntry| {
-                                        entry.id.id == self.selected_top_tab_id
-                                    })
-                                    .unwrap();
+                                        let entry = self
+                                            .top_level_entries
+                                            .iter_mut()
+                                            .find(|entry: &&mut TopLevelEntry| {
+                                                entry.id.id == self.selected_top_tab_id
+                                            })
+                                            .unwrap();
 
-                                let response = entry.control.ui(
-                                    ui,
-                                    &mut session_fragments_mut[&entry.id.id],
-                                    false,
-                                );
+                                        let response = entry.control.ui(
+                                            ui,
+                                            &mut session_fragments_mut[&entry.id.id],
+                                            false,
+                                        );
 
-                                if let Some(response) = response {
-                                    path_value_pairs.push(response);
-                                }
+                                        if let Some(response) = response {
+                                            path_value_pairs.push(response);
+                                        }
 
-                                ui.end_row();
-                            }
-                        })
+                                        ui.end_row();
+                                    }
+                                })
+                        });
                 });
         }
 

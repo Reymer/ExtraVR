@@ -3,8 +3,8 @@ use alvr_events::{GraphStatistics, StatisticsSummary};
 use alvr_gui_common::theme;
 use eframe::{
     egui::{
-        popup, pos2, vec2, Align2, Color32, CornerRadius, FontId, Frame, Grid, Id, Painter, Rect,
-        RichText, ScrollArea, Shape, Stroke, Ui,
+        popup, pos2, vec2, Align2, Color32, CornerRadius, FontId, Frame, Grid, Id, Margin, Painter,
+        Rect, RichText, ScrollArea, Shape, Stroke, Ui,
     },
     emath::RectTransform,
     epaint::Pos2,
@@ -17,6 +17,23 @@ const UPPER_QUANTILE: f64 = 0.90;
 
 fn draw_lines(painter: &Painter, points: Vec<Pos2>, color: Color32) {
     painter.add(Shape::line(points, Stroke::new(1.0, color)));
+}
+
+// A single KPI tile: small muted label above a large cyan value.
+fn stat_tile(ui: &mut Ui, label: &str, value: &str) {
+    theme::card(theme::DARKER_BG)
+        .inner_margin(Margin::same(12))
+        .show(ui, |ui| {
+            ui.set_width(ui.available_width());
+            ui.label(RichText::new(label).size(12.0).weak());
+            ui.add_space(4.0);
+            ui.label(
+                RichText::new(value)
+                    .size(20.0)
+                    .strong()
+                    .color(theme::ACCENT),
+            );
+        });
 }
 
 pub struct StatisticsTab {
@@ -53,10 +70,13 @@ impl StatisticsTab {
                 self.draw_statistics_overview(ui, stats);
             });
         } else {
-            ui.heading(
-                "No statistics available. 
-            Start SteamVR and connect to a device to gather statistics",
-            );
+            ui.add_space(14.0);
+            theme::card(theme::SECTION_BG).show(ui, |ui| {
+                ui.heading(
+                    "尚無可用的統計資料。
+            請啟動 SteamVR 並連線至裝置以收集統計資料",
+                );
+            });
         }
 
         None
@@ -71,59 +91,64 @@ impl StatisticsTab {
         graph_content: impl FnOnce(&Painter, RectTransform),
         tooltip_content: impl FnOnce(&mut Ui, &GraphStatistics),
     ) {
-        ui.add_space(10.0);
-        ui.label(RichText::new(title).size(20.0));
+        ui.add_space(14.0);
 
-        let canvas_response = Frame::canvas(ui.style()).show(ui, |ui| {
-            ui.ctx().request_repaint();
-            let size = available_width * vec2(1.0, 0.2);
+        theme::card(theme::SECTION_BG).show(ui, |ui| {
+            theme::section_title(ui, title);
+            ui.add_space(10.0);
 
-            let (_id, canvas_rect) = ui.allocate_space(size);
+            let canvas_response = Frame::canvas(ui.style()).show(ui, |ui| {
+                ui.ctx().request_repaint();
+                let size = vec2(ui.available_width(), available_width * 0.2);
 
-            let max = *data_range.end();
-            let min = *data_range.start();
-            let data_rect = Rect::from_x_y_ranges(0.0..=GRAPH_HISTORY_SIZE as f32, max..=min);
-            let to_screen = RectTransform::from_to(data_rect, canvas_rect);
+                let (_id, canvas_rect) = ui.allocate_space(size);
 
-            let painter = ui.painter().with_clip_rect(canvas_rect);
+                let max = *data_range.end();
+                let min = *data_range.start();
+                let data_rect = Rect::from_x_y_ranges(0.0..=GRAPH_HISTORY_SIZE as f32, max..=min);
+                let to_screen = RectTransform::from_to(data_rect, canvas_rect);
 
-            if max == min {
-                // Drawing using a 0 sized rectangle causes a crash
-                return data_rect;
+                let painter = ui.painter().with_clip_rect(canvas_rect);
+
+                if max == min {
+                    // Drawing using a 0 sized rectangle causes a crash
+                    return data_rect;
+                }
+
+                graph_content(&painter, to_screen);
+
+                ui.painter().text(
+                    to_screen * pos2(0.0, min),
+                    Align2::LEFT_BOTTOM,
+                    format!("{min:.0}"),
+                    FontId::monospace(20.0),
+                    Color32::GRAY,
+                );
+                ui.painter().text(
+                    to_screen * pos2(0.0, max),
+                    Align2::LEFT_TOP,
+                    format!("{max:.0}"),
+                    FontId::monospace(20.0),
+                    Color32::GRAY,
+                );
+
+                data_rect
+            });
+
+            if let Some(pos) = canvas_response.response.hover_pos() {
+                let graph_pos =
+                    RectTransform::from_to(canvas_response.response.rect, canvas_response.inner)
+                        * pos;
+                let history_index = (graph_pos.x as usize).clamp(0, GRAPH_HISTORY_SIZE - 1);
+
+                popup::show_tooltip(
+                    ui.ctx(),
+                    ui.layer_id(),
+                    Id::new(format!("{title}_popup")),
+                    |ui| tooltip_content(ui, &self.history[history_index]),
+                );
             }
-
-            graph_content(&painter, to_screen);
-
-            ui.painter().text(
-                to_screen * pos2(0.0, min),
-                Align2::LEFT_BOTTOM,
-                format!("{min:.0}"),
-                FontId::monospace(20.0),
-                Color32::GRAY,
-            );
-            ui.painter().text(
-                to_screen * pos2(0.0, max),
-                Align2::LEFT_TOP,
-                format!("{max:.0}"),
-                FontId::monospace(20.0),
-                Color32::GRAY,
-            );
-
-            data_rect
         });
-
-        if let Some(pos) = canvas_response.response.hover_pos() {
-            let graph_pos =
-                RectTransform::from_to(canvas_response.response.rect, canvas_response.inner) * pos;
-            let history_index = (graph_pos.x as usize).clamp(0, GRAPH_HISTORY_SIZE - 1);
-
-            popup::show_tooltip(
-                ui.ctx(),
-                ui.layer_id(),
-                Id::new(format!("{title}_popup")),
-                |ui| tooltip_content(ui, &self.history[history_index]),
-            );
-        }
     }
 
     fn draw_latency_graph(&self, ui: &mut Ui, available_width: f32) {
@@ -137,7 +162,7 @@ impl StatisticsTab {
         self.draw_graph(
             ui,
             available_width,
-            "Latency",
+            "延遲",
             0.0..=(data.quantile(UPPER_QUANTILE) * 1.2) as f32 * 1000.0,
             |painter, to_screen_trans| {
                 for i in 0..GRAPH_HISTORY_SIZE {
@@ -184,31 +209,31 @@ impl StatisticsTab {
 
                     label(
                         ui,
-                        "Motion to Photon Latency",
+                        "動作到光子延遲",
                         stats.total_pipeline_latency_s,
                         theme::FG,
                     );
-                    label(ui, "ALVR Latency", transmission_total_latency_s, theme::FG);
+                    label(ui, "ExtraVR 延遲", transmission_total_latency_s, theme::FG);
                     label(
                         ui,
-                        "Client System (not ALVR latency)",
+                        "用戶端系統（非 ExtraVR 延遲）",
                         stats.vsync_queue_s,
                         RENDER_EXTERNAL_LABEL,
                     );
                     label(
                         ui,
-                        "Client App Compositor",
+                        "用戶端應用程式合成器",
                         stats.client_compositor_s,
                         RENDER,
                     );
-                    label(ui, "Frame Buffering", stats.decoder_queue_s, IDLE);
-                    label(ui, "Decode", stats.decoder_s, TRANSCODE);
-                    label(ui, "Network", stats.network_s, NETWORK);
-                    label(ui, "Encode", stats.encoder_s, TRANSCODE);
-                    label(ui, "Streamer Compositor", stats.server_compositor_s, RENDER);
+                    label(ui, "畫面緩衝", stats.decoder_queue_s, IDLE);
+                    label(ui, "解碼", stats.decoder_s, TRANSCODE);
+                    label(ui, "網路", stats.network_s, NETWORK);
+                    label(ui, "編碼", stats.encoder_s, TRANSCODE);
+                    label(ui, "串流端合成器", stats.server_compositor_s, RENDER);
                     label(
                         ui,
-                        "Game Render (not ALVR latency)",
+                        "遊戲算繪（非 ExtraVR 延遲）",
                         stats.game_time_s,
                         RENDER_EXTERNAL_LABEL,
                     );
@@ -235,7 +260,7 @@ impl StatisticsTab {
         self.draw_graph(
             ui,
             available_width,
-            "Framerate",
+            "畫面更新率",
             min as f32..=max as f32,
             |painter, to_screen_trans| {
                 let (server_fps_points, client_fps_points) = (0..GRAPH_HISTORY_SIZE)
@@ -258,8 +283,8 @@ impl StatisticsTab {
                         ui.end_row();
                     }
 
-                    label(ui, "Server FPS", stats.server_fps, graph_colors::SERVER_FPS);
-                    label(ui, "Client FPS", stats.client_fps, graph_colors::CLIENT_FPS);
+                    label(ui, "伺服器 FPS", stats.server_fps, graph_colors::SERVER_FPS);
+                    label(ui, "用戶端 FPS", stats.client_fps, graph_colors::CLIENT_FPS);
                 });
             },
         );
@@ -276,7 +301,7 @@ impl StatisticsTab {
         self.draw_graph(
             ui,
             available_width,
-            "Bitrate and Throughput",
+            "位元率與吞吐量",
             0.0..=(data.quantile(UPPER_QUANTILE) * 1.2) as f32 / 1e6,
             |painter, to_screen_trans| {
                 let mut scaled_calculated = Vec::with_capacity(GRAPH_HISTORY_SIZE);
@@ -375,116 +400,134 @@ impl StatisticsTab {
 
                     maybe_label(
                         ui,
-                        "Initial calculated throughput",
+                        "初始計算吞吐量",
                         td.scaled_calculated_throughput_bps,
                         graph_colors::INITIAL_CALCULATED_THROUGHPUT,
                     );
                     maybe_label(
                         ui,
-                        "Encoder latency limiter",
+                        "編碼器延遲限制器",
                         td.encoder_latency_limiter_bps,
                         graph_colors::ENCODER_DECODER_LATENCY_LIMITER,
                     );
                     maybe_label(
                         ui,
-                        "Network latency limiter",
+                        "網路延遲限制器",
                         td.network_latency_limiter_bps,
                         graph_colors::NETWORK_LATENCY_LIMITER,
                     );
                     maybe_label(
                         ui,
-                        "Decoder latency limiter",
+                        "解碼器延遲限制器",
                         td.decoder_latency_limiter_bps
                             .filter(|l| *l < stats.throughput_bps),
                         graph_colors::ENCODER_DECODER_LATENCY_LIMITER,
                     );
                     maybe_label(
                         ui,
-                        "Manual max throughput",
+                        "手動最大吞吐量",
                         td.manual_max_throughput_bps,
                         graph_colors::MIN_MAX_LATENCY_THROUGHPUT,
                     );
                     maybe_label(
                         ui,
-                        "Manual min throughput",
+                        "手動最小吞吐量",
                         td.manual_min_throughput_bps,
                         graph_colors::MIN_MAX_LATENCY_THROUGHPUT,
                     );
                     maybe_label(
                         ui,
-                        "Requested bitrate",
+                        "要求的位元率",
                         Some(td.requested_bitrate_bps),
                         graph_colors::REQUESTED_BITRATE,
                     );
                     maybe_label(
                         ui,
-                        "Recorded throughput",
+                        "記錄的吞吐量",
                         Some(stats.throughput_bps),
                         graph_colors::RECORDED_THROUGHPUT,
                     );
                     maybe_label(
                         ui,
-                        "Recorded bitrate",
+                        "記錄的位元率",
                         Some(stats.bitrate_bps),
                         graph_colors::RECORDED_BITRATE,
                     );
                 });
 
-                ui.small("Note: throughput is the peak bitrate, packet_size/network_latency.");
+                ui.small("注意：吞吐量為尖峰位元率，即 packet_size/network_latency。");
             },
         )
     }
 
     fn draw_statistics_overview(&self, ui: &mut Ui, statistics: &StatisticsSummary) {
-        ui.add_space(10.0);
+        ui.add_space(14.0);
 
-        ui.columns(2, |ui| {
-            ui[0].label("Total packets:");
-            ui[1].label(format!(
-                "{} packets ({} packets/s)",
-                statistics.video_packets_total, statistics.video_packets_per_sec
-            ));
+        theme::card(theme::SECTION_BG).show(ui, |ui| {
+            theme::section_title(ui, "統計總覽");
+            ui.add_space(10.0);
 
-            ui[0].label("Total sent:");
-            ui[1].label(format!("{} MB", statistics.video_mbytes_total));
+            let tiles: [(&str, String); 11] = [
+                (
+                    "封包總數：",
+                    format!(
+                        "{} 個封包（{} 個封包/秒）",
+                        statistics.video_packets_total, statistics.video_packets_per_sec
+                    ),
+                ),
+                (
+                    "傳送總量：",
+                    format!("{} MB", statistics.video_mbytes_total),
+                ),
+                (
+                    "位元率：",
+                    format!("{:.1} Mbps", statistics.video_mbits_per_sec),
+                ),
+                ("總延遲：", format!("{:.0} ms", statistics.total_latency_ms)),
+                (
+                    "編碼器延遲：",
+                    format!("{:.2} ms", statistics.encode_latency_ms),
+                ),
+                (
+                    "傳輸延遲：",
+                    format!("{:.2} ms", statistics.network_latency_ms),
+                ),
+                (
+                    "解碼器延遲：",
+                    format!("{:.2} ms", statistics.decode_latency_ms),
+                ),
+                (
+                    "遺失封包總數：",
+                    format!(
+                        "{} 個封包（{} 個封包/秒）",
+                        statistics.packets_lost_total, statistics.packets_lost_per_sec
+                    ),
+                ),
+                ("用戶端 FPS：", format!("{} FPS", statistics.client_fps)),
+                ("串流端 FPS：", format!("{} FPS", statistics.server_fps)),
+                (
+                    "頭戴裝置電量",
+                    format!(
+                        "{}%（{}）",
+                        statistics.battery_hmd,
+                        if statistics.hmd_plugged {
+                            "充電中"
+                        } else {
+                            "未充電"
+                        }
+                    ),
+                ),
+            ];
 
-            ui[0].label("Bitrate:");
-            ui[1].label(format!("{:.1} Mbps", statistics.video_mbits_per_sec));
-
-            ui[0].label("Total latency:");
-            ui[1].label(format!("{:.0} ms", statistics.total_latency_ms));
-
-            ui[0].label("Encoder latency:");
-            ui[1].label(format!("{:.2} ms", statistics.encode_latency_ms));
-
-            ui[0].label("Transport latency:");
-            ui[1].label(format!("{:.2} ms", statistics.network_latency_ms));
-
-            ui[0].label("Decoder latency:");
-            ui[1].label(format!("{:.2} ms", statistics.decode_latency_ms));
-
-            ui[0].label("Total packets lost:");
-            ui[1].label(format!(
-                "{} packets ({} packets/s)",
-                statistics.packets_lost_total, statistics.packets_lost_per_sec
-            ));
-
-            ui[0].label("Client FPS:");
-            ui[1].label(format!("{} FPS", statistics.client_fps));
-
-            ui[0].label("Streamer FPS:");
-            ui[1].label(format!("{} FPS", statistics.server_fps));
-
-            ui[0].label("Headset battery");
-            ui[1].label(format!(
-                "{}% ({})",
-                statistics.battery_hmd,
-                if statistics.hmd_plugged {
-                    "plugged"
-                } else {
-                    "unplugged"
-                }
-            ));
+            let cols = ((ui.available_width() / 220.0).floor() as usize).clamp(1, 4);
+            for chunk in tiles.chunks(cols) {
+                ui.columns(cols, |columns| {
+                    for (i, tile) in chunk.iter().enumerate() {
+                        stat_tile(&mut columns[i], tile.0, &tile.1);
+                    }
+                });
+                ui.add_space(8.0);
+            }
         });
     }
 }

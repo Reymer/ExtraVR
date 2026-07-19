@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>ExtraVR 監控</title>
+<style>
+  :root {
+    --bg: #0d1117; --panel: #161c26; --panel2: #1b2430; --line: #283240;
+    --fg: #e8edf2; --dim: #8b95a3; --accent: #00e0ff;
+    --ok: #2dd9a6; --warn: #e8c547; --bad: #ff4d6d;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--fg); min-height: 100vh;
+    font-family: system-ui, -apple-system, "Segoe UI", "Microsoft JhengHei", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  header {
+    display: flex; align-items: center; gap: 12px; padding: 14px 20px;
+    background: var(--panel); border-bottom: 1px solid var(--line);
+    position: sticky; top: 0; z-index: 2;
+  }
+  header .brand { font-size: 20px; font-weight: 800; color: var(--accent); letter-spacing: .5px; }
+  header .sub { font-size: 12px; color: var(--dim); font-family: ui-monospace, Consolas, monospace; }
+  header .status { margin-left: auto; display: flex; align-items: center; gap: 8px; font-size: 13px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--bad); box-shadow: 0 0 0 0 rgba(255,77,109,.5); }
+  .dot.idle { background: var(--warn); }
+  .dot.on { background: var(--ok); animation: pulse 2s infinite; }
+  @keyframes pulse { 70% { box-shadow: 0 0 0 7px rgba(45,217,166,0); } 100% { box-shadow: 0 0 0 0 rgba(45,217,166,0); } }
+  main { max-width: 1100px; margin: 0 auto; padding: 20px; }
+  .gauges { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 16px; }
+  @media (max-width: 720px) { .gauges { grid-template-columns: 1fr; } .tiles { grid-template-columns: repeat(2, 1fr); } }
+  .card {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px;
+  }
+  .gauge { display: flex; flex-direction: column; align-items: center; }
+  .gauge svg { width: 170px; height: 120px; }
+  .gauge .val { font-size: 34px; font-weight: 700; font-variant-numeric: tabular-nums; margin-top: -4px; }
+  .gauge .val small { font-size: 14px; color: var(--dim); font-weight: 400; margin-left: 3px; }
+  .gauge .lbl { font-size: 13px; color: var(--dim); margin-top: 6px; letter-spacing: .04em; }
+  .tile { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+  .tile .lbl { font-size: 11px; color: var(--dim); text-transform: uppercase; letter-spacing: .08em; }
+  .tile .val { font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; margin-top: 4px; }
+  .tile .val small { font-size: 12px; color: var(--dim); font-weight: 400; margin-left: 2px; }
+  .spark { margin-top: 16px; }
+  .spark .lbl { font-size: 12px; color: var(--dim); margin-bottom: 6px; }
+  .spark canvas { width: 100%; height: 90px; display: block; background: var(--panel2); border: 1px solid var(--line); border-radius: 10px; }
+  .hint { text-align: center; color: var(--dim); font-size: 13px; margin-top: 22px; }
+</style>
+</head>
+<body>
+<header>
+  <span class="brand">ExtraVR</span>
+  <span class="sub">監控儀表</span>
+  <span class="status"><span class="dot" id="dot"></span><span id="statusText">連線中…</span></span>
+</header>
+
+<main>
+  <div class="gauges">
+    <div class="card gauge">
+      <svg viewBox="0 0 170 110"><path class="track" /><path class="arc" id="arc-lat" /></svg>
+      <div class="val"><span id="v-lat">--</span><small>ms</small></div>
+      <div class="lbl">總延遲</div>
+    </div>
+    <div class="card gauge">
+      <svg viewBox="0 0 170 110"><path class="track" /><path class="arc" id="arc-fps" /></svg>
+      <div class="val"><span id="v-fps">--</span><small>fps</small></div>
+      <div class="lbl">用戶端 FPS</div>
+    </div>
+    <div class="card gauge">
+      <svg viewBox="0 0 170 110"><path class="track" /><path class="arc" id="arc-br" /></svg>
+      <div class="val"><span id="v-br">--</span><small>Mbps</small></div>
+      <div class="lbl">位元率</div>
+    </div>
+  </div>
+
+  <div class="tiles">
+    <div class="tile"><div class="lbl">網路延遲</div><div class="val"><span id="t-net">--</span><small>ms</small></div></div>
+    <div class="tile"><div class="lbl">編碼延遲</div><div class="val"><span id="t-enc">--</span><small>ms</small></div></div>
+    <div class="tile"><div class="lbl">解碼延遲</div><div class="val"><span id="t-dec">--</span><small>ms</small></div></div>
+    <div class="tile"><div class="lbl">伺服器 FPS</div><div class="val"><span id="t-sfps">--</span></div></div>
+    <div class="tile"><div class="lbl">丟包 / 秒</div><div class="val"><span id="t-loss">--</span></div></div>
+    <div class="tile"><div class="lbl">封包 / 秒</div><div class="val"><span id="t-pkt">--</span></div></div>
+    <div class="tile"><div class="lbl">傳輸總量</div><div class="val"><span id="t-mb">--</span><small>MB</small></div></div>
+    <div class="tile"><div class="lbl">頭盔電量</div><div class="val"><span id="t-bat">--</span><small>%</small></div></div>
+  </div>
+
+  <div class="spark card" style="padding:14px 16px;">
+    <div class="lbl" style="font-size:12px;color:var(--dim);margin-bottom:6px;">總延遲（近 120 筆）</div>
+    <canvas id="spark" width="1040" height="90"></canvas>
+  </div>
+
+  <div class="hint">串流端 <span id="host"></span> · 資料來自 <code>/api/events</code></div>
+</main>
+
+<script>
+"use strict";
+const $ = (id) => document.getElementById(id);
+$("host").textContent = location.host;
+
+// ---- SVG gauges (semicircle arc) --------------------------------------------
+const R = 72, CX = 85, CY = 92;
+function polar(cx, cy, r, deg) {
+  const a = (deg - 180) * Math.PI / 180;
+  return [cx + r * Math.cos(a), cy + r * Math.sin(a)];
+}
+function arcPath(frac) {
+  frac = Math.max(0, Math.min(1, frac));
+  const end = 180 * frac;
+  const [sx, sy] = polar(CX, CY, R, 0);
+  const [ex, ey] = polar(CX, CY, R, end);
+  const large = end > 180 ? 1 : 0;
+  return `M ${sx} ${sy} A ${R} ${R} 0 ${large} 1 ${ex} ${ey}`;
+}
+document.querySelectorAll("path.track").forEach((p) => {
+  p.setAttribute("d", arcPath(1));
+  p.setAttribute("fill", "none");
+  p.setAttribute("stroke", "#283240");
+  p.setAttribute("stroke-width", "12");
+  p.setAttribute("stroke-linecap", "round");
+});
+function setGauge(id, frac, color) {
+  const p = $(id);
+  p.setAttribute("d", arcPath(frac));
+  p.setAttribute("fill", "none");
+  p.setAttribute("stroke", color);
+  p.setAttribute("stroke-width", "12");
+  p.setAttribute("stroke-linecap", "round");
+}
+const CSS = getComputedStyle(document.documentElement);
+const C = (n) => CSS.getPropertyValue(n).trim();
+function latColor(ms) { return ms < 25 ? C("--ok") : ms < 45 ? C("--accent") : ms < 70 ? C("--warn") : C("--bad"); }
+function fpsColor(f) { return f >= 80 ? C("--ok") : f >= 60 ? C("--accent") : f >= 40 ? C("--warn") : C("--bad"); }
+
+// ---- sparkline --------------------------------------------------------------
+const hist = [];
+const spark = $("spark"), sctx = spark.getContext("2d");
+function drawSpark() {
+  const w = spark.width, h = spark.height;
+  sctx.clearRect(0, 0, w, h);
+  if (hist.length < 2) return;
+  const max = Math.max(50, ...hist);
+  sctx.beginPath();
+  hist.forEach((v, i) => {
+    const x = (i / (hist.length - 1)) * w;
+    const y = h - (v / max) * (h - 8) - 4;
+    i ? sctx.lineTo(x, y) : sctx.moveTo(x, y);
+  });
+  sctx.strokeStyle = C("--accent");
+  sctx.lineWidth = 2;
+  sctx.stroke();
+}
+
+// ---- render -----------------------------------------------------------------
+function fmt(n, d = 1) { return (n == null || isNaN(n)) ? "--" : n.toFixed(d); }
+function render(s) {
+  const lat = s.total_latency_ms;
+  $("v-lat").textContent = fmt(lat, 0);
+  setGauge("arc-lat", lat / 100, latColor(lat));
+  $("v-fps").textContent = s.client_fps;
+  setGauge("arc-fps", s.client_fps / 120, fpsColor(s.client_fps));
+  $("v-br").textContent = fmt(s.video_mbits_per_sec, 0);
+  setGauge("arc-br", s.video_mbits_per_sec / 200, C("--accent"));
+
+  $("t-net").textContent = fmt(s.network_latency_ms);
+  $("t-enc").textContent = fmt(s.encode_latency_ms);
+  $("t-dec").textContent = fmt(s.decode_latency_ms);
+  $("t-sfps").textContent = s.server_fps;
+  $("t-loss").textContent = s.packets_lost_per_sec;
+  $("t-pkt").textContent = s.video_packets_per_sec;
+  $("t-mb").textContent = s.video_mbytes_total;
+  $("t-bat").textContent = s.battery_hmd + (s.hmd_plugged ? "⚡" : "");
+
+  hist.push(lat);
+  if (hist.length > 120) hist.shift();
+  drawSpark();
+}
+
+// ---- websocket (auto-reconnect) ---------------------------------------------
+// Connection is up as soon as SteamVR loads the driver — but StatisticsSummary
+// events only flow during an active stream. Distinguish the two states so an
+// idle-but-connected page doesn't look broken.
+let ws, connected = false, lastStats = 0;
+function setStatus(state) {
+  const dot = $("dot");
+  dot.className = "dot" + (state === "live" ? " on" : state === "idle" ? " idle" : "");
+  $("statusText").textContent =
+    state === "live" ? "串流中" :
+    state === "idle" ? "已連線 · 等待串流數據" : "已中斷 · 重連中…";
+}
+function tick() {
+  if (!connected) return;
+  setStatus(lastStats && Date.now() - lastStats < 3000 ? "live" : "idle");
+}
+setInterval(tick, 1000);
+function connect() {
+  const proto = location.protocol === "https:" ? "wss" : "ws";
+  ws = new WebSocket(`${proto}://${location.host}/api/events`);
+  ws.onopen = () => { connected = true; tick(); };
+  ws.onclose = () => { connected = false; setStatus("off"); setTimeout(connect, 1500); };
+  ws.onerror = () => ws.close();
+  ws.onmessage = (m) => {
+    let ev;
+    try { ev = JSON.parse(m.data); } catch { return; }
+    const et = ev.event_type || ev;
+    if (et && et.id === "StatisticsSummary" && et.data) { lastStats = Date.now(); render(et.data); tick(); }
+  };
+}
+connect();
+</script>
+</body>
+</html>

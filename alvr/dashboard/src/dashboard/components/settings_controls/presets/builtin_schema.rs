@@ -34,7 +34,7 @@ pub fn resolution_schema() -> PresetSchemaNode {
         name: "resolution".into(),
         strings: [(
             "help".into(),
-            "Choosing too high resolution (commonly 'High (width: 5184)') may result in high latency or black screen.".into(),
+            "選擇過高的解析度（通常是「High (width: 5184)」）可能導致高延遲或黑畫面。".into(),
         )]
         .into_iter()
         .collect(),
@@ -114,7 +114,7 @@ pub fn codec_preset_schema() -> PresetSchemaNode {
         name: "codec_preset".into(),
         strings: [(
             "help".into(),
-            "AV1 is only supported on newer gpus (AMD RX 7xxx+ , NVIDIA RTX 30xx+, Intel ARC)!"
+            "AV1 僅支援較新的顯示卡（AMD RX 7xxx+、NVIDIA RTX 30xx+、Intel ARC）！"
                 .into(),
         )]
         .into_iter()
@@ -143,7 +143,7 @@ pub fn encoder_preset_schema() -> PresetSchemaNode {
         name: "encoder_preset".into(),
         strings: [(
             "help".into(),
-            "Selecting a quality too high may result in stuttering or still image!".into(),
+            "選擇過高的品質可能導致畫面卡頓或靜止！".into(),
         )]
         .into_iter()
         .collect(),
@@ -182,10 +182,8 @@ pub fn foveation_preset_schema() -> PresetSchemaNode {
         name: "foveation_preset".into(),
         strings: [(
             "help".into(),
-            "Foveation affects pixelation on the edges of \
-            the screen and significantly reduces codec latency. 
-It is not recommended to fully disable it, as it may cause \
-shutterring and high encode/decode latency!"
+            "注視點編碼會影響畫面邊緣的像素化程度，並大幅降低編解碼器延遲。
+不建議完全停用它，因為這可能導致畫面抖動以及過高的編碼/解碼延遲！"
                 .into(),
         )]
         .into_iter()
@@ -298,7 +296,7 @@ pub fn game_audio_schema() -> PresetSchemaNode {
         name: "Headset speaker".into(),
         strings: [(
             "notice".into(),
-            "You can change the default audio device from the system taskbar tray (bottom right)"
+            "您可以從系統工作列系統匣（右下角）變更預設音訊裝置"
                 .into(),
         )]
         .into_iter()
@@ -377,9 +375,9 @@ pub fn microphone_schema() -> PresetSchemaNode {
 }
 
 pub fn hand_tracking_interaction_schema() -> PresetSchemaNode {
-    const HELP: &str = r"Disabled: hands cannot emulate buttons. Useful for using Joy-Cons or other non-native controllers.
-SteamVR Input 2.0: create separate SteamVR devices for hand tracking.
-ALVR bindings: use ALVR hand tracking button bindings. Check the wiki for help.
+    const HELP: &str = r"Disabled：手部無法模擬按鍵。適合用於 Joy-Con 或其他非原生控制器。
+SteamVR Input 2.0：為手部追蹤建立獨立的 SteamVR 裝置。
+ALVR bindings：使用 ALVR 手部追蹤按鍵綁定。請參閱 wiki 尋求協助。
 ";
 
     const PREFIX: &str = "session_settings.headset.controllers.content";

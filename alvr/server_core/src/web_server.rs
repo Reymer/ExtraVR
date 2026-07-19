@@ -172,13 +172,27 @@ async fn http_api(
             .body("invalid method".into())?);
     }
 
+    let path = request.uri().path().to_owned();
+
+    // Browser-facing monitoring page — served without the X-ALVR header so it can be
+    // opened from any device at http://<streamer>:<web_server_port>/monitor
+    if path == "/" || path == "/monitor" {
+        return Ok(Response::builder()
+            .header(CONTENT_TYPE, "text/html; charset=utf-8")
+            .header(ACCESS_CONTROL_ALLOW_ORIGIN, "*")
+            .body(include_str!("monitor.html").into())?);
+    }
+
     // This is the actual core part of cors
     // We require the X-ALVR header, but the browser forces a cors preflight
     // if the site tries to send a request with it set since it's not-whitelisted
     //
     // The dashboard can just set the header and be allowed through without the preflight
-    // thus not getting blocked by allow_untrusted_http being disabled
-    if request.headers().get(X_ALVR) != Some(&HeaderValue::from_static("true")) {
+    // thus not getting blocked by allow_untrusted_http being disabled.
+    // Exception: the live-stats WebSocket, since browsers can't set headers on a WS handshake.
+    if path != "/api/events"
+        && request.headers().get(X_ALVR) != Some(&HeaderValue::from_static("true"))
+    {
         return Ok(Response::builder()
             .status(StatusCode::BAD_REQUEST)
             .body("missing X-ALVR header".into())?);
@@ -373,8 +387,6 @@ async fn http_api(
     Ok(response)
 }
 
-const TCP_PASSTHROUGH_PORT: u16 = 9001;
-
 async fn handle_passthrough_tcp_client(socket: TcpStream, peer: SocketAddr) {
     info!("[PassthroughTCP] Client connected: {peer}");
 
@@ -485,17 +497,22 @@ async fn handle_passthrough_tcp_client(socket: TcpStream, peer: SocketAddr) {
 }
 
 async fn tcp_passthrough_server() {
-    let bind_addr = SocketAddr::new("0.0.0.0".parse().unwrap(), TCP_PASSTHROUGH_PORT);
+    let port = crate::SESSION_MANAGER
+        .read()
+        .settings()
+        .connection
+        .passthrough_tcp_port;
+    let bind_addr = SocketAddr::new("0.0.0.0".parse().unwrap(), port);
 
     let listener = match TcpListener::bind(bind_addr).await {
         Ok(l) => l,
         Err(e) => {
-            error!("[PassthroughTCP] Failed to bind on port {TCP_PASSTHROUGH_PORT}: {e}");
+            error!("[PassthroughTCP] Failed to bind on port {port}: {e}");
             return;
         }
     };
 
-    info!("[PassthroughTCP] Listening on port {TCP_PASSTHROUGH_PORT}");
+    info!("[PassthroughTCP] Listening on port {port}");
 
     loop {
         match listener.accept().await {

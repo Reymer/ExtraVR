@@ -12,7 +12,7 @@ use alvr_events::EventType;
 use alvr_gui_common::theme;
 use alvr_packets::{PathValuePair, ServerRequest};
 use alvr_session::SessionConfig;
-use eframe::egui::{self, Align, CentralPanel, Frame, Layout, Margin, RichText, SidePanel, Stroke};
+use eframe::egui::{self, Align, CentralPanel, Frame, Layout, Margin, RichText, Stroke};
 use std::{collections::BTreeMap, sync::Arc};
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug)]
@@ -27,13 +27,81 @@ enum Tab {
     About,
 }
 
+#[derive(Clone, Copy)]
+enum TabIcon {
+    Devices,
+    Statistics,
+    Settings,
+    Installation,
+    Logs,
+    Debug,
+    About,
+}
+
+/// Draw a clean monochrome line icon centred in `rect` — replaces the mismatched
+/// colour emoji that egui renders for the sidebar tabs.
+fn draw_tab_icon(painter: &egui::Painter, rect: egui::Rect, icon: TabIcon, color: egui::Color32) {
+    let c = rect.center();
+    let s = Stroke::new(1.8, color);
+    let p = |dx: f32, dy: f32| c + egui::vec2(dx, dy);
+
+    match icon {
+        TabIcon::Devices => {
+            painter.circle_stroke(p(-6.0, 0.0), 2.4, s);
+            painter.circle_stroke(p(6.0, 0.0), 2.4, s);
+            painter.line_segment([p(-3.6, 0.0), p(3.6, 0.0)], s);
+        }
+        TabIcon::Statistics => {
+            painter.line_segment([p(-8.0, -7.0), p(-8.0, 7.0)], s);
+            painter.line_segment([p(-8.0, 7.0), p(8.0, 7.0)], s);
+            painter.add(egui::Shape::line(
+                vec![p(-6.5, 4.0), p(-2.0, -1.0), p(2.0, 1.5), p(7.0, -5.0)],
+                s,
+            ));
+        }
+        TabIcon::Settings => {
+            for (y, kx) in [(-5.0_f32, -2.0_f32), (0.0, 3.5), (5.0, -4.0)] {
+                painter.line_segment([p(-8.0, y), p(8.0, y)], s);
+                painter.circle_filled(p(kx, y), 2.3, color);
+            }
+        }
+        TabIcon::Installation => {
+            painter.line_segment([p(0.0, -7.0), p(0.0, 3.0)], s);
+            painter.line_segment([p(-3.5, -0.5), p(0.0, 3.0)], s);
+            painter.line_segment([p(3.5, -0.5), p(0.0, 3.0)], s);
+            painter.line_segment([p(-6.0, 6.5), p(6.0, 6.5)], s);
+        }
+        TabIcon::Logs => {
+            painter.line_segment([p(-7.0, -4.5), p(7.0, -4.5)], s);
+            painter.line_segment([p(-7.0, 0.0), p(7.0, 0.0)], s);
+            painter.line_segment([p(-7.0, 4.5), p(2.0, 4.5)], s);
+        }
+        TabIcon::Debug => {
+            painter.add(egui::Shape::line(
+                vec![p(-3.0, -5.5), p(-8.0, 0.0), p(-3.0, 5.5)],
+                s,
+            ));
+            painter.add(egui::Shape::line(
+                vec![p(3.0, -5.5), p(8.0, 0.0), p(3.0, 5.5)],
+                s,
+            ));
+            painter.line_segment([p(1.8, -6.0), p(-1.8, 6.0)], s);
+        }
+        TabIcon::About => {
+            painter.circle_stroke(c, 8.0, s);
+            painter.circle_filled(p(0.0, -3.6), 1.3, color);
+            painter.line_segment([p(0.0, -0.5), p(0.0, 4.6)], s);
+        }
+    }
+}
+
 pub struct Dashboard {
     data_sources: DataSources,
     just_opened: bool,
     server_restarting: Arc<Mutex<bool>>,
     server_restarting_condvar: Arc<Condvar>,
     selected_tab: Tab,
-    tab_labels: BTreeMap<Tab, &'static str>,
+    tab_labels: BTreeMap<Tab, (TabIcon, &'static str)>,
     connections_tab: DevicesTab,
     statistics_tab: StatisticsTab,
     settings_tab: SettingsTab,
@@ -60,14 +128,11 @@ impl Dashboard {
             server_restarting_condvar: Arc::new(Condvar::new()),
             selected_tab: Tab::Devices,
             tab_labels: [
-                (Tab::Devices, "🔌  Devices"),
-                (Tab::Statistics, "📈  Statistics"),
-                (Tab::Settings, "⚙  Settings"),
-                #[cfg(not(target_arch = "wasm32"))]
-                (Tab::Installation, "💾  Installation"),
-                (Tab::Logs, "📝  Logs"),
-                (Tab::Debug, "🐞  Debug"),
-                (Tab::About, "ℹ  About"),
+                (Tab::Devices, (TabIcon::Devices, "裝置")),
+                (Tab::Statistics, (TabIcon::Statistics, "統計")),
+                (Tab::Settings, (TabIcon::Settings, "設定")),
+                (Tab::Logs, (TabIcon::Logs, "日誌")),
+                (Tab::About, (TabIcon::About, "關於")),
             ]
             .into_iter()
             .collect(),
@@ -140,10 +205,6 @@ impl eframe::App for Dashboard {
                     self.logs_tab.update_settings(&settings);
                     self.notification_bar.update_settings(&settings);
                     if self.just_opened {
-                        if settings.extra.open_setup_wizard {
-                            self.setup_wizard_open = true;
-                        }
-
                         self.just_opened = false;
                     }
 
@@ -170,14 +231,13 @@ impl eframe::App for Dashboard {
                 // todo: find a way to center both vertically and horizontally
                 ui.vertical_centered(|ui| {
                     ui.add_space(100.0);
-                    ui.heading(RichText::new("SteamVR is restarting").size(30.0));
+                    ui.heading(RichText::new("SteamVR 正在重新啟動").size(30.0));
                 });
             });
 
             return;
         }
 
-        self.notification_bar.ui(context);
 
         if self.setup_wizard_open {
             CentralPanel::default().show(context, |ui| {
@@ -202,72 +262,107 @@ impl eframe::App for Dashboard {
                 }
             });
         } else {
-            SidePanel::left("side_panel")
-                .resizable(false)
+            egui::TopBottomPanel::top("nav_bar")
                 .frame(
                     Frame::new()
                         .fill(theme::LIGHTER_BG)
-                        .inner_margin(Margin::same(7))
+                        .inner_margin(Margin::symmetric(14, 9))
                         .stroke(Stroke::new(1.0, theme::SEPARATOR_BG)),
                 )
-                .exact_width(160.0)
                 .show(context, |ui| {
-                    ui.with_layout(Layout::top_down_justified(Align::Center), |ui| {
-                        ui.add_space(13.0);
-                        ui.heading(RichText::new("ALVR").size(25.0).strong());
+                    ui.horizontal(|ui| {
+                        ui.spacing_mut().item_spacing.x = 6.0;
+                        ui.heading(
+                            RichText::new("ExtraVR")
+                                .size(20.0)
+                                .strong()
+                                .color(theme::ACCENT),
+                        );
                         egui::warn_if_debug_build(ui);
-                    });
+                        ui.add_space(4.0);
+                        ui.separator();
+                        ui.add_space(4.0);
 
-                    ui.with_layout(Layout::top_down_justified(Align::Min), |ui| {
-                        for (tab, label) in &self.tab_labels {
-                            ui.selectable_value(&mut self.selected_tab, *tab, *label);
+                        for (tab, (icon, name)) in &self.tab_labels {
+                            let selected = self.selected_tab == *tab;
+                            let galley = ui.painter().layout_no_wrap(
+                                (*name).to_owned(),
+                                egui::FontId::proportional(15.0),
+                                theme::FG,
+                            );
+                            let (rect, resp) = ui.allocate_at_least(
+                                egui::vec2(galley.size().x + 46.0, 30.0),
+                                egui::Sense::click(),
+                            );
+                            if selected {
+                                ui.painter().rect_filled(
+                                    rect,
+                                    egui::CornerRadius::same(8),
+                                    theme::ACCENT,
+                                );
+                            } else if resp.hovered() {
+                                ui.painter().rect_filled(
+                                    rect,
+                                    egui::CornerRadius::same(8),
+                                    theme::SECTION_BG,
+                                );
+                            }
+                            let fg = if selected { theme::ON_ACCENT } else { theme::FG };
+                            draw_tab_icon(
+                                ui.painter(),
+                                egui::Rect::from_center_size(
+                                    egui::pos2(rect.left() + 19.0, rect.center().y),
+                                    egui::vec2(18.0, 18.0),
+                                ),
+                                *icon,
+                                fg,
+                            );
+                            ui.painter().text(
+                                egui::pos2(rect.left() + 34.0, rect.center().y),
+                                egui::Align2::LEFT_CENTER,
+                                name,
+                                egui::FontId::proportional(15.0),
+                                fg,
+                            );
+                            if resp.clicked() {
+                                self.selected_tab = *tab;
+                            }
                         }
-                    });
 
-                    #[cfg(not(target_arch = "wasm32"))]
-                    ui.with_layout(
-                        Layout::bottom_up(Align::Center).with_cross_justify(true),
-                        |ui| {
-                            ui.add_space(5.0);
-
+                        #[cfg(not(target_arch = "wasm32"))]
+                        ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                             if connected_to_server {
-                                if ui.button("Restart SteamVR").clicked() {
+                                if ui.button("重新啟動 SteamVR").clicked() {
                                     self.restart_steamvr(&mut requests);
                                 }
-                            } else if ui.button("Launch SteamVR").clicked() {
+                            } else if ui.button("啟動 SteamVR").clicked() {
                                 crate::steamvr_launcher::LAUNCHER.lock().launch_steamvr();
                             }
-
-                            ui.horizontal(|ui| {
-                                ui.add_space(5.0);
-                                ui.label(RichText::new("SteamVR:").size(13.0));
-                                ui.add_space(-10.0);
-                                if connected_to_server {
-                                    ui.label(
-                                        RichText::new("Connected")
-                                            .color(theme::OK_GREEN)
-                                            .size(13.0),
-                                    );
-                                } else {
-                                    ui.label(
-                                        RichText::new("Disconnected")
-                                            .color(theme::KO_RED)
-                                            .size(13.0),
-                                    );
-                                }
-                            })
-                        },
-                    )
+                            ui.add_space(8.0);
+                            let (dot, status) = if connected_to_server {
+                                (theme::OK_GREEN, "SteamVR：已連線")
+                            } else {
+                                (theme::KO_RED, "SteamVR：已中斷連線")
+                            };
+                            ui.label(RichText::new("●").color(dot).size(13.0))
+                                .on_hover_text(status);
+                        });
+                    });
                 });
 
             CentralPanel::default()
                 .frame(Frame::new().inner_margin(Margin::same(20)).fill(theme::BG))
                 .show(context, |ui| {
                     ui.with_layout(Layout::top_down_justified(Align::LEFT), |ui| {
-                        ui.heading(RichText::new(self.tab_labels[&self.selected_tab]).size(25.0));
                         match self.selected_tab {
                             Tab::Devices => {
-                                requests.extend(self.connections_tab.ui(ui, connected_to_server));
+                                egui::ScrollArea::vertical()
+                                    .auto_shrink([false, false])
+                                    .show(ui, |ui| {
+                                        requests.extend(
+                                            self.connections_tab.ui(ui, connected_to_server),
+                                        );
+                                    });
                             }
                             Tab::Statistics => {
                                 if let Some(request) = self.statistics_tab.ui(ui) {

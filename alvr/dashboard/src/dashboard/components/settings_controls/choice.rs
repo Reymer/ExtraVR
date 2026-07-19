@@ -10,6 +10,9 @@ use serde_json as json;
 use std::collections::HashMap;
 
 fn get_display_name(id: &str, strings: &HashMap<String, String>) -> String {
+    if let Some(zh) = super::translation::tr_label(id) {
+        return zh.to_owned();
+    }
     strings.get("display_name").cloned().unwrap_or_else(|| {
         let mut chars = id.chars();
 
@@ -148,7 +151,7 @@ impl Control {
                     self.variant_labels.len() + 1,
                     |idx| {
                         if idx == 0 {
-                            "Preset not applied".into()
+                            "未套用預設集".into()
                         } else {
                             self.variant_labels[idx - 1].display.clone()
                         }

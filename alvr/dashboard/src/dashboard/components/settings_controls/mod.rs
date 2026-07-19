@@ -11,6 +11,7 @@ pub mod reset;
 pub mod section;
 pub mod switch;
 pub mod text;
+pub mod translation;
 pub mod up_down;
 pub mod vector;
 
@@ -44,6 +45,9 @@ fn grid_flow_inline(ui: &mut Ui, allow_inline: bool) {
 }
 
 pub fn get_display_name(id: &str, strings: &HashMap<String, String>) -> String {
+    if let Some(zh) = translation::tr_label(id) {
+        return zh.to_owned();
+    }
     strings.get("display_name").cloned().unwrap_or_else(|| {
         let mut chars = id.chars();
         chars.next().unwrap().to_uppercase().collect::<String>()
@@ -172,7 +176,7 @@ impl SettingControl {
             Self::Dictionary(control) => control.ui(ui, session_fragment, allow_inline),
             Self::None => {
                 grid_flow_inline(ui, allow_inline);
-                ui.add_enabled_ui(false, |ui| ui.label("Unimplemented UI"));
+                ui.add_enabled_ui(false, |ui| ui.label("未實作的 UI"));
 
                 None
             }

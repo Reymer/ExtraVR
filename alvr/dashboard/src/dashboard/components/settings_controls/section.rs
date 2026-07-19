@@ -8,7 +8,7 @@ use alvr_gui_common::{
 };
 use alvr_packets::PathValuePair;
 use alvr_session::settings_schema::{SchemaEntry, SchemaNode};
-use eframe::egui::Ui;
+use eframe::egui::{RichText, Ui};
 use serde_json as json;
 
 struct Entry {
@@ -40,8 +40,16 @@ impl Control {
             .map(|entry| {
                 let id = entry.name;
                 let display = super::get_display_name(&id, &entry.strings);
-                let help = entry.strings.get("help").cloned();
-                let notice = entry.strings.get("notice").cloned();
+                let help = entry.strings.get("help").map(|s| {
+                    super::translation::tr_text(s)
+                        .map(str::to_owned)
+                        .unwrap_or_else(|| s.clone())
+                });
+                let notice = entry.strings.get("notice").map(|s| {
+                    super::translation::tr_text(s)
+                        .map(str::to_owned)
+                        .unwrap_or_else(|| s.clone())
+                });
                 let hidden = entry.flags.contains("hidden");
                 let steamvr_restart_flag = entry.flags.contains("steamvr-restart");
                 let real_time_flag = entry.flags.contains("real-time");
@@ -103,13 +111,17 @@ impl Control {
 
         if !collapsed {
             for (i, entry) in self.entries.iter_mut().enumerate() {
-                if entry.hidden {
+                if entry.hidden || super::translation::is_hidden(&entry.id.id) {
                     continue;
                 }
 
                 ui.horizontal(|ui| {
                     ui.add_space(INDENTATION_STEP * self.nesting_info.indentation_level as f32);
-                    let label_res = ui.label(&entry.id.display);
+                    let label_res = ui.label(
+                        RichText::new(entry.id.display.as_str())
+                            .size(15.0)
+                            .color(alvr_gui_common::theme::FG),
+                    );
                     if cfg!(debug_assertions) {
                         label_res.on_hover_text(&*entry.id);
                     }
@@ -129,8 +141,8 @@ impl Control {
                             ui,
                             "steamvr_restart_tooltip",
                             &format!(
-                                "Changing this setting will make SteamVR restart!\n{}",
-                                "Please save your in-game progress first"
+                                "變更此設定將使 SteamVR 重新啟動！\n{}",
+                                "請先儲存您的遊戲進度"
                             ),
                         );
                     }
@@ -140,7 +152,7 @@ impl Control {
                         alvr_gui_common::tooltip(
                             ui,
                             "real_time_tooltip",
-                            "This setting can be changed in real-time during streaming!",
+                            "此設定可在串流過程中即時變更！",
                         );
                     }
                 });

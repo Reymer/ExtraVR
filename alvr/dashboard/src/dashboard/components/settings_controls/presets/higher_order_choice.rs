@@ -155,8 +155,8 @@ impl Control {
                     ui,
                     "steamvr_restart_tooltip",
                     &format!(
-                        "Changing this setting will make SteamVR restart!\n{}",
-                        "Please save your in-game progress first"
+                        "變更此設定將使 SteamVR 重新啟動！\n{}",
+                        "請先儲存您的遊戲進度"
                     ),
                 );
             }
@@ -166,7 +166,7 @@ impl Control {
                 alvr_gui_common::tooltip(
                     ui,
                     "real_time_tooltip",
-                    "This setting can be changed in real-time during streaming!",
+                    "此設定可在串流過程中即時變更！",
                 );
             }
         });

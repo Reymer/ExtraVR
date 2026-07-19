@@ -180,7 +180,7 @@ impl DataSources {
                         let message = version_data
                             .get("body")
                             .and_then(|v| v.as_str())
-                            .unwrap_or("Error parsing release body");
+                            .unwrap_or("解析發行說明時發生錯誤");
 
                         report_event_local(
                             &context,

@@ -35,31 +35,31 @@ impl NewVersionPopup {
 
     pub fn ui(&self, context: &Context, shutdown_alvr_cb: impl Fn()) -> Option<CloseAction> {
         let no_remind_button =
-            ModalButton::Custom("Don't remind me again for this version".to_string());
+            ModalButton::Custom("此版本不再提醒我".to_string());
 
         let result = alvr_gui_common::modal(
             context,
-            "New ALVR version available",
+            "有可用的 ExtraVR 新版本",
             Some(|ui: &mut Ui| {
                 ui.horizontal(|ui| {
                     ui.add_space(10.0);
 
                     ui.vertical(|ui| {
-                        ui.heading(format!("ALVR v{}", self.version));
+                        ui.heading(format!("ExtraVR v{}", self.version));
 
                         ui.horizontal(|ui| {
                             ui.spacing_mut().item_spacing.x = 5.0;
                             ui.style_mut().spacing.button_padding = egui::vec2(10.0, 4.0);
 
-                            ui.heading("You can download this version using the launcher:");
+                            ui.heading("您可以使用啟動器下載此版本：");
 
                             if let Some(path) = &self.launcher_path {
-                                if ui.button("Open Launcher").clicked()
+                                if ui.button("開啟啟動器").clicked()
                                     && Command::new(path).spawn().is_ok()
                                 {
                                     shutdown_alvr_cb();
                                 }
-                            } else if ui.button("Download Launcher").clicked() {
+                            } else if ui.button("下載啟動器").clicked() {
                                 let base_url =
                                     "https://github.com/alvr-org/ALVR/releases/latest/download/";
                                 let file = if cfg!(windows) {
@@ -76,7 +76,7 @@ impl NewVersionPopup {
 
                         ui.label(&self.message);
                         ui.hyperlink_to(
-                            "Releases page",
+                            "發行頁面",
                             "https://github.com/alvr-org/ALVR/releases",
                         );
                     });
