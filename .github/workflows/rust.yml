@@ -6,8 +6,15 @@ name: Rust
 on:
   push:
     branches: [Extra]
+    paths-ignore: &non_code
+      - "**.md"
+      - "LICENSE"
+      - "installer/**"
+      - "wiki/**"
+      - ".github/workflows/prepare-release.yml"
   pull_request:
     branches: [Extra]
+    paths-ignore: *non_code
   workflow_dispatch:
 
 env:
