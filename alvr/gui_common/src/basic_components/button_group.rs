@@ -30,7 +30,7 @@ pub fn button_group_clicked(
                 .stroke(if selected {
                     Stroke::NONE
                 } else {
-                    Stroke::new(1.0, theme::SEPARATOR_BG)
+                    Stroke::new(1.0_f32, theme::SEPARATOR_BG)
                 });
 
             let res = ui.add(chip);

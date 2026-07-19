@@ -48,12 +48,16 @@ const NOTIFICATION_TIPS: &[&str] = &[
     r#"如果您的頭戴裝置未出現在裝置清單中，它可能位於不同的子網路。請嘗試使用「Add device manually」，並輸入裝置內顯示的 IP。"#,
 ];
 
+/// NOTE: the ExtraVR dashboard rework dropped the `notification_bar.ui(context)`
+/// call from `Dashboard::ui`, so notifications are still collected but never
+/// drawn. `ui` and `expanded` are dead until that call is restored.
 pub struct NotificationBar {
     message: String,
     current_level: LogSeverity,
     receive_instant: Instant,
     min_notification_level: LogSeverity,
     tip_message: Option<String>,
+    #[allow(dead_code)]
     expanded: bool,
 }
 
@@ -104,6 +108,7 @@ impl NotificationBar {
         }
     }
 
+    #[allow(dead_code)]
     pub fn ui(&mut self, context: &egui::Context) {
         let now = Instant::now();
         if now > self.receive_instant + TIMEOUT {
@@ -125,7 +130,7 @@ impl NotificationBar {
             Frame::default()
                 .inner_margin(egui::vec2(10.0, 5.0))
                 .fill(bg)
-                .stroke(Stroke::new(1.0, theme::SEPARATOR_BG)),
+                .stroke(Stroke::new(1.0_f32, theme::SEPARATOR_BG)),
         );
         let alignment = if !self.expanded {
             bottom_bar = bottom_bar.max_height(26.0);

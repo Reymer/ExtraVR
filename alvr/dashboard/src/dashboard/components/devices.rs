@@ -11,6 +11,8 @@ use eframe::{
 };
 
 /// Best-effort primary LAN IP of this machine (cached once), for the status line.
+/// Not currently displayed anywhere — kept for the status line it was written for.
+#[allow(dead_code)]
 #[cfg(not(target_arch = "wasm32"))]
 pub fn local_ip() -> &'static str {
     use std::sync::OnceLock;
@@ -26,6 +28,7 @@ pub fn local_ip() -> &'static str {
     })
     .as_str()
 }
+#[allow(dead_code)]
 #[cfg(target_arch = "wasm32")]
 pub fn local_ip() -> &'static str {
     "—"

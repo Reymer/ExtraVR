@@ -81,41 +81,41 @@ pub fn set_theme(ctx: &Context) {
     // Non-interactive: labels, frames, separators
     visuals.widgets.noninteractive.bg_fill = BG;
     visuals.widgets.noninteractive.weak_bg_fill = BG;
-    visuals.widgets.noninteractive.fg_stroke = Stroke::new(1.0, FG);
-    visuals.widgets.noninteractive.bg_stroke = Stroke::new(1.0, SEPARATOR_BG);
+    visuals.widgets.noninteractive.fg_stroke = Stroke::new(1.0_f32, FG);
+    visuals.widgets.noninteractive.bg_stroke = Stroke::new(1.0_f32, SEPARATOR_BG);
     visuals.widgets.noninteractive.corner_radius = corner_radius;
 
     // Inactive: idle buttons / combo boxes
     visuals.widgets.inactive.bg_fill = panel;
     visuals.widgets.inactive.weak_bg_fill = panel;
-    visuals.widgets.inactive.fg_stroke = Stroke::new(1.0, FG);
-    visuals.widgets.inactive.bg_stroke = Stroke::new(1.0, SEPARATOR_BG);
+    visuals.widgets.inactive.fg_stroke = Stroke::new(1.0_f32, FG);
+    visuals.widgets.inactive.bg_stroke = Stroke::new(1.0_f32, SEPARATOR_BG);
     visuals.widgets.inactive.corner_radius = corner_radius;
 
     // Hovered: cyan outline is the signature "tech" highlight
     visuals.widgets.hovered.bg_fill = panel_hover;
     visuals.widgets.hovered.weak_bg_fill = panel_hover;
-    visuals.widgets.hovered.fg_stroke = Stroke::new(1.0, FG);
-    visuals.widgets.hovered.bg_stroke = Stroke::new(1.0, ACCENT);
+    visuals.widgets.hovered.fg_stroke = Stroke::new(1.0_f32, FG);
+    visuals.widgets.hovered.bg_stroke = Stroke::new(1.0_f32, ACCENT);
     visuals.widgets.hovered.corner_radius = corner_radius;
 
     // Active (pressed): solid cyan with dark ink for max contrast
     visuals.widgets.active.bg_fill = ACCENT;
     visuals.widgets.active.weak_bg_fill = ACCENT;
-    visuals.widgets.active.fg_stroke = Stroke::new(1.0, ON_ACCENT);
-    visuals.widgets.active.bg_stroke = Stroke::new(1.0, ACCENT);
+    visuals.widgets.active.fg_stroke = Stroke::new(1.0_f32, ON_ACCENT);
+    visuals.widgets.active.bg_stroke = Stroke::new(1.0_f32, ACCENT);
     visuals.widgets.active.corner_radius = corner_radius;
 
     // Open (expanded combo/menu)
     visuals.widgets.open.bg_fill = panel;
     visuals.widgets.open.weak_bg_fill = panel;
-    visuals.widgets.open.fg_stroke = Stroke::new(1.0, FG);
-    visuals.widgets.open.bg_stroke = Stroke::new(1.0, SEPARATOR_BG);
+    visuals.widgets.open.fg_stroke = Stroke::new(1.0_f32, FG);
+    visuals.widgets.open.bg_stroke = Stroke::new(1.0_f32, SEPARATOR_BG);
     visuals.widgets.open.corner_radius = corner_radius;
 
     // Selection: selected tab / highlighted text = cyan fill, dark ink label
     visuals.selection.bg_fill = ACCENT;
-    visuals.selection.stroke = Stroke::new(1.0, ON_ACCENT);
+    visuals.selection.stroke = Stroke::new(1.0_f32, ON_ACCENT);
 
     // Sliders fill their track with the accent up to the handle.
     visuals.slider_trailing_fill = true;
@@ -128,7 +128,7 @@ pub fn set_theme(ctx: &Context) {
 pub fn card(fill: Color32) -> egui::Frame {
     egui::Frame::new()
         .fill(fill)
-        .stroke(Stroke::new(1.0, SEPARATOR_BG))
+        .stroke(Stroke::new(1.0_f32, SEPARATOR_BG))
         .corner_radius(CornerRadius::same(8))
         .inner_margin(egui::Margin::same(14))
 }

@@ -282,7 +282,10 @@ async fn install_server(
 
     if let Some(session_version) = session_version {
         // This code is tailored for Windows and is only hit on Windows
-        assert!(cfg!(windows));
+        #[allow(clippy::assertions_on_constants)]
+        {
+            assert!(cfg!(windows));
+        }
 
         for inst in get_installations() {
             if inst.version == session_version {

@@ -117,6 +117,9 @@ fn default_view() -> xr::View {
 }
 
 // This exists to circumvent dead-code analysis
+// `graphics::session_create_info` is `unimplemented!()` off Android, which makes the
+// call below unreachable whenever the crate is type-checked for a desktop host (CI).
+#[allow(unreachable_code)]
 fn create_session(
     xr_instance: &xr::Instance,
     xr_system: xr::SystemId,

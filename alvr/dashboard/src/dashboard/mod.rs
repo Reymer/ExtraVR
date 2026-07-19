@@ -15,14 +15,20 @@ use alvr_session::SessionConfig;
 use eframe::egui::{self, Align, CentralPanel, Frame, Layout, Margin, RichText, Stroke};
 use std::{collections::BTreeMap, sync::Arc};
 
+// ExtraVR ships the installer, which handles firewall rules and SteamVR driver
+// registration, so `Installation` and `Debug` are deliberately left out of the
+// sidebar list built in `Dashboard::new`. Their tabs still render correctly, so
+// the variants are kept for whenever they need to be listed again.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug)]
 enum Tab {
     Devices,
     Statistics,
     Settings,
     #[cfg(not(target_arch = "wasm32"))]
+    #[allow(dead_code)]
     Installation,
     Logs,
+    #[allow(dead_code)]
     Debug,
     About,
 }
@@ -32,8 +38,10 @@ enum TabIcon {
     Devices,
     Statistics,
     Settings,
+    #[allow(dead_code)]
     Installation,
     Logs,
+    #[allow(dead_code)]
     Debug,
     About,
 }
@@ -42,7 +50,7 @@ enum TabIcon {
 /// colour emoji that egui renders for the sidebar tabs.
 fn draw_tab_icon(painter: &egui::Painter, rect: egui::Rect, icon: TabIcon, color: egui::Color32) {
     let c = rect.center();
-    let s = Stroke::new(1.8, color);
+    let s = Stroke::new(1.8_f32, color);
     let p = |dx: f32, dy: f32| c + egui::vec2(dx, dy);
 
     match icon {
@@ -266,7 +274,7 @@ impl eframe::App for Dashboard {
                     Frame::new()
                         .fill(theme::LIGHTER_BG)
                         .inner_margin(Margin::symmetric(14, 9))
-                        .stroke(Stroke::new(1.0, theme::SEPARATOR_BG)),
+                        .stroke(Stroke::new(1.0_f32, theme::SEPARATOR_BG)),
                 )
                 .show(context, |ui| {
                     ui.horizontal(|ui| {
