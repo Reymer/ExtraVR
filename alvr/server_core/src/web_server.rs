@@ -8,6 +8,7 @@ use alvr_common::{
 };
 use alvr_events::{ButtonEvent, EventType};
 use alvr_packets::{ButtonEntry, ClientListAction, PathSegment, PathValuePair, ServerRequest};
+use alvr_session::PassthroughMode;
 use bytes::Buf;
 use futures::SinkExt;
 use headers::{
@@ -381,12 +382,6 @@ async fn handle_passthrough_tcp_client(socket: TcpStream, peer: SocketAddr) {
     let reader = BufReader::new(socket);
     let mut lines = reader.lines();
 
-    // Track last applied command to skip redundant session writes.
-    // Unity calls SetPassthroughOff/Blend every frame (~60/s); without dedup each call
-    // holds SESSION_MANAGER write lock long enough to starve the HTTP server.
-    let mut last_cmd = String::new();
-    let mut last_threshold = -1.0f32;
-
     while let Ok(Some(line)) = lines.next_line().await {
         let value = match json::from_str::<json::Value>(&line) {
             Ok(v) => v,
@@ -399,12 +394,32 @@ async fn handle_passthrough_tcp_client(socket: TcpStream, peer: SocketAddr) {
         let cmd = value["passthrough"].as_str().unwrap_or("").to_owned();
         let threshold = value["threshold"].as_f64().unwrap_or(0.5) as f32;
 
-        // Skip if nothing changed — avoids redundant JSON serialize/deserialize/disk writes
-        if cmd == last_cmd && (threshold - last_threshold).abs() < 1e-4 {
+        // Skip the write when the session already holds the requested state. A write takes
+        // the SESSION_MANAGER write lock and hits the disk, so a client repeating itself
+        // (older ones send every frame) must not cost anything.
+        //
+        // This compares against the live session rather than caching the last command per
+        // connection: with a cache, a passthrough change made in the dashboard would be
+        // silently kept, because the client repeating its unchanged command would be
+        // deduped and never re-applied.
+        let already_applied = {
+            let session_manager = SESSION_MANAGER.read();
+            let current = session_manager.settings().video.passthrough.as_option();
+            match (cmd.as_str(), current) {
+                ("Off", None) => true,
+                (
+                    "Blend",
+                    Some(PassthroughMode::Blend {
+                        premultiplied_alpha: false,
+                        threshold: current_threshold,
+                    }),
+                ) => (current_threshold - threshold).abs() < 1e-4,
+                _ => false,
+            }
+        };
+        if already_applied {
             continue;
         }
-        last_cmd.clone_from(&cmd);
-        last_threshold = threshold;
 
         // Build a minimal list of leaf-level path changes to avoid replacing the
         // entire PassthroughModeDefault subtree (which contains all variant fields).
