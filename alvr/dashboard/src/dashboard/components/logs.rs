@@ -74,7 +74,7 @@ impl LogsTab {
 
     pub fn ui(&self, ui: &mut Ui) {
         ui.horizontal(|ui| {
-            if ui.button("Copy all").clicked() {
+            if ui.button("複製全部").clicked() {
                 ui.output_mut(|out| {
                     out.commands
                         .push(OutputCommand::CopyText(self.entries.iter().fold(
@@ -88,7 +88,7 @@ impl LogsTab {
                         )));
                 })
             }
-            if ui.button("Open logs directory").clicked() {
+            if ui.button("開啟日誌資料夾").clicked() {
                 let log_dir = crate::get_filesystem_layout().log_dir;
                 ui.ctx().open_url(OpenUrl::same_tab(format!(
                     "file://{}",

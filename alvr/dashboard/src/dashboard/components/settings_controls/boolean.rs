@@ -14,7 +14,7 @@ pub struct Control {
 
 impl Control {
     pub fn new(nesting_info: NestingInfo, default: bool) -> Self {
-        let default_string = if default { "ON".into() } else { "OFF".into() };
+        let default_string = if default { "開".into() } else { "關".into() };
 
         Self {
             nesting_info,

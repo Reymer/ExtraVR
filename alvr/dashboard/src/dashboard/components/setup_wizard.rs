@@ -72,7 +72,7 @@ impl SetupWizard {
             ui.add_space(60.0);
             ui.vertical(|ui| {
                 ui.add_space(30.0);
-                ui.heading(RichText::new("Welcome to ALVR").size(30.0));
+                ui.heading(RichText::new("歡迎使用 ALVR").size(30.0));
                 ui.add_space(5.0);
             });
             ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
@@ -86,16 +86,16 @@ impl SetupWizard {
         match &self.page {
             Page::Welcome => page_content(
                 ui,
-                "This setup wizard will help you setup ALVR.",
+                "這個設定精靈會協助你設定 ALVR。",
                 "",
                 |_| (),
             ),
             Page::ResetSettings => page_content(
                 ui,
-                "Reset settings",
-                "It is recommended to reset your settings everytime you update ALVR.",
+                "重設設定",
+                "建議每次更新 ALVR 之後都重設一次設定。",
                 |ui| {
-                    if ui.button("Reset settings").clicked() {
+                    if ui.button("重設設定").clicked() {
                         request = Some(SetupWizardRequest::ServerRequest(
                             ServerRequest::UpdateSession(Box::default()),
                         ));
@@ -104,25 +104,25 @@ impl SetupWizard {
             ),
             Page::HardwareRequirements => page_content(
                 ui,
-                "Hardware requirements",
-                r"ALVR requires a dedicated and recent graphics card. Low-end Intel integrated graphics may fail to work.
-Make sure you have at least one output audio device.",
+                "硬體需求",
+                r"ALVR 需要一張獨立且較新的顯示卡。低階的 Intel 內顯可能無法正常運作。
+請確認你至少有一個音訊輸出裝置。",
                 |_| (),
             ),
             Page::SoftwareRequirements => page_content(
                 ui,
-                "Software requirements",
+                "軟體需求",
                 if cfg!(windows) {
-                    r"To stream the headset microphone on Windows you need to install Virtual Audio Cable, VB-Cable, Voicemeeter"
+                    r"要在 Windows 上串流頭戴裝置的麥克風，需要安裝 Virtual Audio Cable、VB-Cable 或 Voicemeeter"
                 } else if cfg!(target_os = "linux") {
-                    r"You need the PipeWire (0.3.49+ version) audio system to be able to stream audio and use microphone."
+                    r"需要 PipeWire（0.3.49 以上版本）音訊系統才能串流音訊與使用麥克風。"
                 } else {
-                    r"Unsupported OS"
+                    r"不支援的作業系統"
                 },
                 #[allow(unused_variables)]
                 |ui| {
                     #[cfg(windows)]
-                    if ui.button("Download Virtual Audio Cable (Lite)").clicked() {
+                    if ui.button("下載 Virtual Audio Cable（Lite）").clicked() {
                         ui.ctx().open_url(eframe::egui::OpenUrl::same_tab(
                             "https://software.muzychenko.net/freeware/vac470lite.zip",
                         ));
@@ -131,11 +131,11 @@ Make sure you have at least one output audio device.",
             ),
             Page::Firewall => page_content(
                 ui,
-                "Firewall",
-                r"To communicate with the headset, some firewall rules need to be set.
-This requires administrator rights!",
+                "防火牆",
+                r"為了跟頭戴裝置通訊，需要設定一些防火牆規則。
+這需要系統管理員權限！",
                 |ui| {
-                    if ui.button("Add firewall rules").clicked() {
+                    if ui.button("新增防火牆規則").clicked() {
                         request = Some(SetupWizardRequest::ServerRequest(
                             ServerRequest::FirewallRules(FirewallRulesAction::Add),
                         ));
@@ -144,14 +144,14 @@ This requires administrator rights!",
             ),
             Page::Recommendations => page_content(
                 ui,
-                "Recommendations",
-                r"ALVR supports multiple types of PC hardware and headsets but not all might work correctly with default settings. Please try tweaking different settings like resolution, bitrate, encoder and others if your ALVR experience is not optimal.",
+                "建議事項",
+                r"ALVR 支援多種 PC 硬體與頭戴裝置，但不是所有裝置在預設設定下都能完美運作。如果體驗不夠理想，請嘗試調整解析度、位元率、編碼器等設定。",
                 |_| (),
             ),
             Page::Finished => page_content(
                 ui,
-                "Finished",
-                r#"You can always restart this setup wizard from the "Installation" tab on the left."#,
+                "完成",
+                r#"你隨時可以從左邊的「安裝」分頁重新啟動這個設定精靈。"#,
                 |_| (),
             ),
         };
@@ -161,14 +161,14 @@ This requires administrator rights!",
             ui.horizontal(|ui| {
                 ui.add_space(15.0);
                 if self.page == Page::Finished {
-                    if ui.button("Finish").clicked() {
+                    if ui.button("完成").clicked() {
                         request = Some(SetupWizardRequest::Close { finished: true });
                     }
-                } else if ui.button("Next").clicked() {
+                } else if ui.button("下一步").clicked() {
                     self.page = index_to_page(self.page as usize + 1);
                 }
                 if ui
-                    .add_visible(self.page != Page::Welcome, Button::new("Back"))
+                    .add_visible(self.page != Page::Welcome, Button::new("上一步"))
                     .clicked()
                 {
                     self.page = index_to_page(self.page as usize - 1);

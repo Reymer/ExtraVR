@@ -13,8 +13,8 @@ pub fn collapsible_button(
         unreachable!()
     };
 
-    if (*state_mut && ui.small_button("Expand").clicked())
-        || (!*state_mut && ui.small_button("Collapse").clicked())
+    if (*state_mut && ui.small_button("展開").clicked())
+        || (!*state_mut && ui.small_button("收合").clicked())
     {
         *state_mut = !*state_mut;
         *request = super::get_single_value(

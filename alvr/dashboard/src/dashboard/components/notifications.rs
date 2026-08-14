@@ -15,37 +15,37 @@ use instant::Instant;
 use std::time::Instant;
 
 const TIMEOUT: Duration = Duration::from_secs(5);
-const NO_NOTIFICATIONS_MESSAGE: &str = "No new notifications";
+const NO_NOTIFICATIONS_MESSAGE: &str = "沒有新通知";
 const NOTIFICATION_TIPS: &[&str] = &[
     // The following tips are ordered roughtly in the order settings appear
-    r#"If you started having crashes after changing some settings, reset ALVR by re-running "Run setup wizard" from the "Installation" tab and clicking "Reset settings"."#,
-    r#"Some settings are hidden by default. Click the "Expand" button next to some settings to expand the submenus."#,
-    r#"It's highly advisable to keep audio settings as default in ALVR and modify the default audio device in the taskbar tray."#,
-    r#"Increasing "Maximum buffering" may reduce stutters at the cost of more latency."#,
-    r#"Sometimes switching between h264 and HEVC codecs is necessary on certain GPUs to fix crashing or fallback to software encoding."#,
-    r#"If you're using an NVIDIA GPU, it's best to use high-bitrate H264; if you're using an AMD GPU, HEVC might look better."#,
-    r#"If you experience "white snow" flickering, reduce the resolution to "Low" and disable "Foveated encoding"."#,
-    r#"Increasing "Color correction"->"Sharpness" may improve the perceived image quality."#,
-    r#"If you have problems syncing external controllers or trackers to ALVR tracking space, add one element to "Extra openvr props", then set a custom "Tracking system name"."#,
-    r#"To change the visual appearance of controllers, set "Headset"->"Controllers"->"Emulation mode"."#,
-    r#"ALVR supports custom button bindings! If you need help, please ask us on our Discord server."#,
-    r#"ALVR supports hand tracking gestures ("Presets"->"Hand tracking interaction"->"ALVR Bindings"). Check out wiki how to use them properly: https://github.com/alvr-org/ALVR/wiki/Hand-tracking-controller-bindings."#,
-    r#"If hand tracking gestures are annoying, you can disable them in "Controllers"->"Gestures". Alternatively, you can enable "Gestures"->"Only touch"."#,
-    r#"You can fine-tune the controllers responsiveness with "Controllers"->"Prediction"."#,
-    r#"If the visual controller/hand models do not match the physical controller, you can tweak the offset in "Headset"->"Controllers"->"Left controller position/rotation offset" (affects both controllers)."#,
-    r#"When using external trackers or controllers, you should set both "Position/Rotation recentering mode" to "Disabled"."#,
-    r#"You can enable tilt mode. Set "Position recentering mode" to "Local" and "Rotation recentering mode" to "Tilted"."#,
-    r#"If you often experience image glitching, you can trade that with stutter frames using "Avoid video glitching"."#,
-    r#"You can run custom commands/programs at headset connection/disconnection using the "On connect/disconnect script"."#,
-    r#"In case you want to report a bug, to get a log file, enable "Extra"->"Logging"->"Log to disk". The log will be inside "session_log.txt"."#,
-    r#"For hacking purposes, you can enable "Log tracking", "Log button presses" and "Log haptics". You can get the data using a websocket at ws://localhost:8082/api/events"#,
-    r#"In case you want to report a bug and share your log, you should enable "Extra"->"Logging"->"Prefer backtrace"."#,
-    r#"You can quickly cycle through tips like this one by toggling "Show notification tip""#,
-    r#"If you want to use body trackers or other SteamVR drivers together with ALVR, set "Driver launch action" to "Unregister ALVR at shutdown""#,
-    r#"It's handy to enable "Extra"->"Steamvr Launcher"->"Open and close SteamVR with dashboard""#,
-    r#"If you want to share a video recording for reporting a bug, you can enable "Extra"->"Capture"->"Rolling video files" to limit the file size of the upload"#,
+    r#"如果改了某些設定後開始出現崩潰，可以到「Installation」分頁重新執行「Run setup wizard」，並按下「Reset settings」來重設 ALVR。"#,
+    r#"有些設定預設是隱藏的。點旁邊的「Expand」按鈕可以展開子選單。"#,
+    r#"強烈建議 ALVR 裡的音訊設定維持預設值，改在工作列的系統匣裡調整預設音訊裝置。"#,
+    r#"調高「Maximum buffering」可能會減少卡頓，但代價是延遲會變高。"#,
+    r#"某些顯示卡有時需要在 h264 與 HEVC 編碼間切換，才能避免崩潰或退回軟體編碼。"#,
+    r#"如果你用 NVIDIA 顯示卡，建議用高位元率的 H264；如果是 AMD 顯示卡，HEVC 畫質可能比較好。"#,
+    r#"如果畫面出現「雪花」閃爍，把解析度降到「Low」並停用「Foveated encoding」。"#,
+    r#"調高「Color correction」->「Sharpness」可能會改善主觀畫質。"#,
+    r#"如果外接控制器或追蹤器跟 ALVR 追蹤空間對不準，試著在「Extra openvr props」加一個項目，再設定自訂的「Tracking system name」。"#,
+    r#"要改變控制器的顯示外觀，設定「Headset」->「Controllers」->「Emulation mode」。"#,
+    r#"ALVR 支援自訂按鍵綁定！有需要的話歡迎到 Discord 伺服器問我們。"#,
+    r#"ALVR 支援手勢追蹤（「Presets」->「Hand tracking interaction」->「ALVR Bindings」）。詳細用法請參考 wiki：https://github.com/alvr-org/ALVR/wiki/Hand-tracking-controller-bindings。"#,
+    r#"如果手勢追蹤造成困擾，可以在「Controllers」->「Gestures」停用它，或者啟用「Gestures」->「Only touch」。"#,
+    r#"可以用「Controllers」->「Prediction」微調控制器的反應靈敏度。"#,
+    r#"如果畫面上的控制器/手部模型跟實體控制器對不上，可以在「Headset」->「Controllers」->「Left controller position/rotation offset」調整偏移（會同時影響兩支控制器）。"#,
+    r#"使用外接追蹤器或控制器時，「Position/Rotation recentering mode」都應該設成「Disabled」。"#,
+    r#"可以啟用傾斜模式：把「Position recentering mode」設成「Local」、「Rotation recentering mode」設成「Tilted」。"#,
+    r#"如果常遇到畫面錯位，可以用「Avoid video glitching」，用卡頓換取畫面正確。"#,
+    r#"可以用「On connect/disconnect script」，在頭戴裝置連線/斷線時執行自訂指令或程式。"#,
+    r#"如果要回報問題並附上 log 檔，啟用「Extra」->「Logging」->「Log to disk」即可，log 會存在「session_log.txt」裡。"#,
+    r#"為了除錯用途，可以啟用「Log tracking」、「Log button presses」與「Log haptics」，並透過 ws://localhost:8082/api/events 這個 websocket 取得資料"#,
+    r#"如果要回報問題並分享 log，建議啟用「Extra」->「Logging」->「Prefer backtrace」。"#,
+    r#"切換「Show notification tip」可以快速循環顯示像這樣的小提示"#,
+    r#"如果要跟 ALVR 一起使用身體追蹤器或其他 SteamVR 驅動程式，把「Driver launch action」設成「Unregister ALVR at shutdown」"#,
+    r#"啟用「Extra」->「Steamvr Launcher」->「Open and close SteamVR with dashboard」會方便不少"#,
+    r#"如果要分享錄影來回報問題，可以啟用「Extra」->「Capture」->「Rolling video files」來限制上傳檔案大小"#,
     // Miscellaneous
-    r#"If your headset does not appear in the device list, it might be in a different subnet. Try "Add device manually" with IP shown from inside device."#,
+    r#"如果裝置列表裡沒看到你的頭戴裝置，可能是它在不同的子網路。試著用裝置裡顯示的 IP，透過「Add device manually」手動加入。"#,
 ];
 
 pub struct NotificationBar {
@@ -76,7 +76,7 @@ impl NotificationBar {
             if self.tip_message.is_none() {
                 self.tip_message = NOTIFICATION_TIPS
                     .choose(&mut rand::rng())
-                    .map(|s| format!("Tip: {s}"));
+                    .map(|s| format!("提示：{s}"));
             }
         } else {
             self.tip_message = None;
@@ -138,10 +138,10 @@ impl NotificationBar {
         bottom_bar.show(context, |ui| {
             ui.with_layout(Layout::right_to_left(alignment), |ui| {
                 if !self.expanded {
-                    if ui.small_button("Expand").clicked() {
+                    if ui.small_button("展開").clicked() {
                         self.expanded = true;
                     }
-                } else if ui.button("Reduce").clicked() {
+                } else if ui.button("收合").clicked() {
                     self.expanded = false;
                 }
                 ui.with_layout(Layout::left_to_right(alignment), |ui| {

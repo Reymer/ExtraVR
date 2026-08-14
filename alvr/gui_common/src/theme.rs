@@ -46,6 +46,8 @@ pub mod graph_colors {
 }
 
 pub fn set_theme(ctx: &Context) {
+    install_cjk_fonts(ctx);
+
     ctx.set_theme(ThemePreference::Dark);
 
     let mut style = (*ctx.style()).clone();
@@ -83,3 +85,49 @@ pub fn set_theme(ctx: &Context) {
 
     ctx.set_visuals(visuals);
 }
+
+/// egui bundles only Latin + emoji glyphs, so Traditional Chinese text renders as
+/// empty "tofu" boxes out of the box. Load a CJK-capable system font (Microsoft
+/// JhengHei on Windows) and append it as a fallback for the proportional and
+/// monospace families. Best-effort: if no candidate font is present we leave
+/// egui's defaults untouched rather than failing.
+#[cfg(all(not(target_arch = "wasm32"), any(windows, target_os = "linux")))]
+fn install_cjk_fonts(ctx: &Context) {
+    use std::sync::Arc;
+
+    #[cfg(windows)]
+    let candidates: &[(&str, u32)] = &[
+        (r"C:\Windows\Fonts\msjh.ttc", 0), // Microsoft JhengHei (Traditional Chinese)
+        (r"C:\Windows\Fonts\msjhl.ttc", 0), // JhengHei Light
+        (r"C:\Windows\Fonts\msyh.ttc", 0), // Microsoft YaHei (Simplified fallback)
+        (r"C:\Windows\Fonts\simsun.ttc", 0), // SimSun
+    ];
+    #[cfg(target_os = "linux")]
+    let candidates: &[(&str, u32)] = &[
+        ("/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc", 1),
+        ("/usr/share/fonts/noto-cjk/NotoSansCJK-Regular.ttc", 1),
+        ("/usr/share/fonts/truetype/wqy/wqy-microhei.ttc", 0),
+    ];
+
+    for (path, index) in candidates {
+        if let Ok(bytes) = std::fs::read(path) {
+            let mut font = egui::FontData::from_owned(bytes);
+            font.index = *index;
+
+            let mut fonts = egui::FontDefinitions::default();
+            fonts.font_data.insert("cjk".to_owned(), Arc::new(font));
+            for family in [egui::FontFamily::Proportional, egui::FontFamily::Monospace] {
+                fonts
+                    .families
+                    .entry(family)
+                    .or_default()
+                    .push("cjk".to_owned());
+            }
+            ctx.set_fonts(fonts);
+            return;
+        }
+    }
+}
+
+#[cfg(not(all(not(target_arch = "wasm32"), any(windows, target_os = "linux"))))]
+fn install_cjk_fonts(_ctx: &Context) {}

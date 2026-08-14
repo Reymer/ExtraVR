@@ -119,7 +119,7 @@ impl Control {
                             alvr_gui_common::tooltip(
                                 ui,
                                 &format!("{}_help_tooltip", entry.id.display),
-                                string,
+                                super::translation::tr_text(string).unwrap_or(string),
                             );
                         }
                     }
@@ -128,10 +128,7 @@ impl Control {
                         alvr_gui_common::tooltip(
                             ui,
                             "steamvr_restart_tooltip",
-                            &format!(
-                                "Changing this setting will make SteamVR restart!\n{}",
-                                "Please save your in-game progress first"
-                            ),
+                            "變更此設定將導致 SteamVR 重新啟動！\n請先儲存你遊戲中的進度",
                         );
                     }
 
@@ -140,13 +137,13 @@ impl Control {
                         alvr_gui_common::tooltip(
                             ui,
                             "real_time_tooltip",
-                            "This setting can be changed in real-time during streaming!",
+                            "這項設定可以在串流期間即時變更！",
                         );
                     }
                 });
 
                 if let Some(string) = &entry.notice {
-                    notice::notice(ui, string);
+                    notice::notice(ui, super::translation::tr_text(string).unwrap_or(string));
 
                     ui.end_row();
 

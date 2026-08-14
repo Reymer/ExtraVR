@@ -126,7 +126,7 @@ impl Control {
             }
 
             ui.label(" ");
-            if ui.button("Add element").clicked() {
+            if ui.button("新增元素").clicked() {
                 let mut session_content =
                     session_fragment["content"].as_array_mut().unwrap().clone();
                 session_content.push(session_fragment["element"].clone());

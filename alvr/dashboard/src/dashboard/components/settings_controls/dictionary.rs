@@ -180,7 +180,7 @@ impl Control {
             }
 
             ui.label(" ");
-            if ui.button("Add entry").clicked() {
+            if ui.button("新增項目").clicked() {
                 let mut session_content =
                     session_fragment["content"].as_array_mut().unwrap().clone();
                 session_content.push(json::Value::Array(vec![
